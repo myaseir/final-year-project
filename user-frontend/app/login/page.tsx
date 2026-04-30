@@ -58,7 +58,7 @@ export default function LoginPage() {
             <input 
               type="text" 
               required
-              placeholder="42101-XXXXXXX-X"
+              placeholder="42101XXXXXXXX"
               className="w-full p-4 bg-white/80 border border-[#F9EAEA] rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-[#E29595]/10 transition-all placeholder:text-[#F3C5C5] text-[#4A3F3F]"
               onChange={(e) => setFormData({...formData, cnic: e.target.value})}
             />

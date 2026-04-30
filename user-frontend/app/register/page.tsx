@@ -20,11 +20,7 @@ const handleRegister = async (e: React.FormEvent) => {
   setError('');
   
   // 1. Frontend Validation (Quick checks)
-  if (!formData.cnic.includes('-') || formData.cnic.length < 15) {
-    setError("Please enter a valid CNIC (e.g., 42101-1234567-1)");
-    return;
-  }
-
+  
   setLoading(true);
   try {
     const res = await api.register(formData);
@@ -87,7 +83,7 @@ const handleRegister = async (e: React.FormEvent) => {
             <input 
               type="text" 
               required
-              placeholder="CNIC (e.g., 42101-1234567-1)"
+              placeholder="CNIC (e.g., 4210112345671)"
               className="w-full p-4.5 bg-white/80 border border-[#F9EAEA] rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-[#E29595]/10 transition-all placeholder:text-[#F3C5C5] text-[#4A3F3F]"
               onChange={(e) => setFormData({...formData, cnic: e.target.value})}
             />
