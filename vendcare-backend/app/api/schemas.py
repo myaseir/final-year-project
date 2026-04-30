@@ -9,7 +9,7 @@ class UserRegisterRequest(BaseModel):
     full_name: str = Field(..., example="Hamza Ahmed")
 
 class LoginRequest(BaseModel):
-    cnic: str = Field(..., example="42101-1234567-1")
+    identifier: str
     pin: str = Field(..., example="1234")
 
 class TopUpRequestSchema(BaseModel):
