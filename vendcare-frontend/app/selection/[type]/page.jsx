@@ -220,7 +220,7 @@ export default function SelectionPage() {
               {selectedProduct ? (
                 <div className="animate-in fade-in zoom-in duration-300">
                   <p className="text-[9px] font-bold uppercase opacity-30 mb-1 tracking-widest">Amount Payable</p>
-                  <span className="text-3xl font-serif italic font-bold" style={{ color: theme.text }}>₹{selectedProduct.price}</span>
+                  <span className="text-3xl font-serif italic font-bold" style={{ color: theme.text }}>PKR {selectedProduct.price}</span>
                 </div>
               ) : (
                 <p className="text-[10px] font-bold uppercase opacity-20 py-4 tracking-[0.3em]">Awaiting Selection</p>
