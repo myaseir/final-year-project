@@ -65,7 +65,7 @@ export default function SelectionPage() {
     setActiveTransaction(null); 
     
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
       const response = await fetch(`${baseUrl}/api/machine/create-qr-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
