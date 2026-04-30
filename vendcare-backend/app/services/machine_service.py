@@ -5,26 +5,29 @@ from typing import Dict, Optional
 import uuid
 
 class MachineService:
-    # 1. UPDATED REGISTRY: Matched to your Next.js CONTENT_MAP names
+    # 1. PRODUCT REGISTRY: Mapped to your Next.js CONTENT_MAP names
     PRODUCT_SLOTS = {
         "Floral Breeze": 1, "Midnight Musk": 2, "Oceanic Mist": 3,
         "Aqua Surge": 4, "Velvet Glow": 5, "Rain Drop": 6,
         "Ultra Shield": 7, "Beach Guard": 8, "Daily Beam": 9
     }
 
-    async def process_dispense(self, cnic: str, pin: str, amount: int, product: str, m_id: str):
+    async def process_dispense(self, identifier: str, pin: str, amount: int, product: str, m_id: str):
         """
         Handles physical machine interaction (Manual Method).
+        Updated to use identifier (Email or CNIC).
         """
         slot_id = self.PRODUCT_SLOTS.get(product)
         if not slot_id:
             return {"success": False, "message": f"Product '{product}' not mapped to a slot"}
 
-        user = await user_repo.get_by_cnic(cnic)
+        # Use the updated repository method
+        user = await user_repo.get_by_identifier(identifier)
         if not user:
             return {"success": False, "message": "User not found"}
         
-        if user.pin != pin:
+        # Ensure PIN comparison handles potential type mismatches
+        if str(user.pin) != str(pin):
             return {"success": False, "message": "Incorrect 4-digit PIN"}
         
         if user.balance < amount:
@@ -53,12 +56,11 @@ class MachineService:
             }
         }
 
-    async def process_mobile_payment(self, cnic: str, amount: int, product_id: str, m_id: str):
+    async def process_mobile_payment(self, identifier: str, pin: str, amount: int, product_id: str, m_id: str):
         """
         Handles the wallet deduction for QR/Mobile scans.
-        Note: We find the product name via the ID (p1, p2, etc.)
+        Updated to support identifier and PIN verification.
         """
-        # Map Product IDs to Names (matching your Next.js list)
         id_to_name = {
             "p1": "Floral Breeze", "p2": "Midnight Musk", "p3": "Oceanic Mist",
             "m1": "Aqua Surge", "m2": "Velvet Glow", "m3": "Rain Drop",
@@ -71,9 +73,14 @@ class MachineService:
         if not slot_id:
             return {"success": False, "message": "Invalid Product ID"}
 
-        user = await user_repo.get_by_cnic(cnic)
+        # Find user by Email or CNIC
+        user = await user_repo.get_by_identifier(identifier)
         if not user:
             return {"success": False, "message": "User not found"}
+
+        # 2. Logic to handle Auto-Pay vs Guest Login PIN check
+        if pin != "SESSION_AUTH" and str(user.pin) != str(pin):
+            return {"success": False, "message": "Invalid PIN"}
 
         if user.balance < amount:
             return {"success": False, "message": "Insufficient Wallet Balance"}

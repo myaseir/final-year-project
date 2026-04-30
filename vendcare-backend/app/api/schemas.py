@@ -19,7 +19,8 @@ class TopUpRequestSchema(BaseModel):
 
 # --- MACHINE SCHEMAS ---
 class DispenseRequest(BaseModel):
-    cnic: str = Field(..., example="42101-1234567-1")
+    # Updated: Machines now accept identifier (Email/CNIC) for more flexibility
+    identifier: str = Field(..., example="user@example.com or 42101-1234567-1")
     pin: str = Field(..., min_length=4, max_length=4, example="1234")
     product_name: str = Field(..., example="Perfume-A") 
     selected_amount: int = Field(..., ge=20, le=1000, example=45) 
@@ -29,6 +30,15 @@ class DispenseRequest(BaseModel):
 class PaymentRequest(BaseModel):
     product_id: str = Field(..., example="p1")
     price: int = Field(..., example=120)
+
+# --- ADD THIS: Mobile Confirmation Schema ---
+class ConfirmPaymentRequest(BaseModel):
+    """
+    This is the specific model the mobile-vend page sends to the backend.
+    Updating 'cnic' to 'identifier' here will fix your 422 Error.
+    """
+    identifier: str = Field(..., example="user@example.com")
+    pin: str = Field(..., example="1234")
 
 # --- ADMIN SCHEMAS ---
 class AdminActionSchema(BaseModel):
