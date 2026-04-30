@@ -1,11 +1,12 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertCircle, Loader2, UserCircle2, KeyRound } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation'; // Added useRouter
+import { CheckCircle2, AlertCircle, Loader2, UserCircle2, KeyRound, Home } from 'lucide-react'; // Added Home icon
 
 function MobilePaymentContent() {
   const searchParams = useSearchParams();
+  const router = useRouter(); // Initialize router
   const tid = searchParams.get('tid');
   
   const [status, setStatus] = useState('checking'); 
@@ -13,10 +14,19 @@ function MobilePaymentContent() {
   const [errorDetail, setErrorDetail] = useState('');
   const [mounted, setMounted] = useState(false);
 
-  // Set mounted to true once component hits the browser
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // New Effect: Handles automatic redirection after success
+  useEffect(() => {
+    if (status === 'success') {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 5000); // Redirect after 5 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [status, router]);
 
   const processPayment = async (identifier, pin) => {
     setStatus('processing');
@@ -44,7 +54,6 @@ function MobilePaymentContent() {
   };
 
   useEffect(() => {
-    // Only run this if the component is mounted and tid exists
     if (!mounted || !tid) return;
 
     const checkSession = () => {
@@ -55,17 +64,14 @@ function MobilePaymentContent() {
       if (savedId) {
         processPayment(savedId, "SESSION_AUTH"); 
       } else {
-        // Force the UI to show the form if no identity exists
         setStatus('guest-form');
       }
     };
 
-    // Small delay ensures localStorage is accessible after hydration
     const timer = setTimeout(checkSession, 500);
     return () => clearTimeout(timer);
   }, [mounted, tid]);
 
-  // Safety UI for missing TID
   if (mounted && !tid) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#fff5f8]">
@@ -116,7 +122,6 @@ function MobilePaymentContent() {
               <input 
                 type="password" 
                 placeholder="4-Digit PIN"
-                maxLength={4}
                 className="w-full p-4 pl-12 bg-[#FFF5F5] rounded-full text-sm outline-none border border-transparent focus:border-[#d8a7b9] tracking-[0.5em] text-[#4A3F3F]"
                 onChange={(e) => setFormData({...formData, pin: e.target.value})}
               />
@@ -134,12 +139,27 @@ function MobilePaymentContent() {
       )}
 
       {status === 'success' && (
-        <div className="text-center space-y-4 animate-in zoom-in duration-300">
+        <div className="text-center space-y-6 animate-in zoom-in duration-300">
           <div className="bg-green-100 p-6 rounded-full inline-block">
             <CheckCircle2 className="w-16 h-16 text-green-500" />
           </div>
-          <h1 className="text-3xl font-serif italic text-[#5a434f]">Payment Successful</h1>
-          <p className="text-sm text-[#8C7A7A]">Please collect your product from the machine.</p>
+          <div>
+            <h1 className="text-3xl font-serif italic text-[#5a434f]">Payment Successful</h1>
+            <p className="text-sm text-[#8C7A7A] mt-2">Please collect your product from the machine.</p>
+          </div>
+          
+          {/* Your Account / Home Button */}
+          <button 
+            onClick={() => router.push('/')}
+            className="flex items-center justify-center gap-2 w-full max-w-xs mx-auto bg-[#d8a7b9] text-white py-4 rounded-full font-bold text-xs tracking-widest hover:bg-[#4A3F3F] transition-all shadow-md"
+          >
+            <Home size={16} />
+            YOUR ACCOUNT
+          </button>
+          
+          <p className="text-[10px] text-[#8C7A7A] uppercase tracking-widest animate-pulse">
+            Redirecting to home in 5 seconds...
+          </p>
         </div>
       )}
 
