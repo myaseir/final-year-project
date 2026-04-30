@@ -90,7 +90,7 @@ export default function SelectionPage() {
     setErrorStatus(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
       const response = await fetch(`${baseUrl}/api/machine/verify-and-dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +125,7 @@ export default function SelectionPage() {
   useEffect(() => {
     if (!activeTransaction?.transactionId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "https://final-year-project-f8ym.vercel.app";
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ;
     const ws = new WebSocket(`${wsUrl}/api/machine/payment-status/${activeTransaction.transactionId}`);
 
     console.log(`Connecting to status socket for: ${activeTransaction.transactionId}`);
