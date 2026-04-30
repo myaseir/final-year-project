@@ -1,19 +1,24 @@
 vendcare-backend/
-├── requirements.txt
-└── app/
-    ├── __init__.py
-    ├── main.py                     # Entry point for FastAPI
-    ├── domain/                     # Enterprise logic (Entities, Models)
-    │   ├── __init__.py
-    │   └── models.py
-    ├── use_cases/                  # Application logic (Services)
-    │   ├── __init__.py
-    │   └── payment_service.py
-    ├── infrastructure/             # External agents (Stripe, WebSockets, DB)
-    │   ├── __init__.py
-    │   ├── stripe_client.py
-    │   └── websocket_manager.py
-    └── interfaces/                 # API Routes and Pydantic Schemas
-        ├── __init__.py
-        ├── schemas.py
-        └── api.py
+├── app/
+│   ├── main.py                 # Core entry point (Glues all routers)
+│   ├── api/                    # INTERFACE LAYER (The Front Door)
+│   │   ├── __init__.py
+│   │   ├── user_routes.py      # Endpoints for User Mobile App
+│   │   ├── admin_routes.py     # Endpoints for Admin Dashboard
+│   │   ├── machine_routes.py   # Endpoints for Physical Machine
+│   │   └── schemas.py          # Pydantic validation for all 3 frontends
+│   ├── services/               # BUSINESS LAYER (The Brains)
+│   │   ├── __init__.py
+│   │   ├── user_service.py     # Logic for Profile, History, Wallet Requests
+│   │   ├── admin_service.py    # Logic for Approvals & Dashboard Stats
+│   │   └── machine_service.py  # Logic for PIN auth & Dispense integrity
+│   ├── repositories/           # DATA LAYER (The Hands)
+│   │   ├── __init__.py
+│   │   └── user_repo.py        # All MongoDB/Beanie queries
+│   └── core/                   # FOUNDATION LAYER
+│       ├── __init__.py
+│       ├── database.py         # MongoDB Connection logic
+│       ├── models.py           # Beanie Document definitions
+│       └── config.py           # Env variables & Secrets
+├── .env                        # Private keys (MONGO_URI, etc.)
+└── requirements.txt            # Dependencies

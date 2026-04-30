@@ -1,26 +1,41 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.infrastructure.websocket_manager import ws_manager
-from app.interfaces.api import router as api_router # Import the routes
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="VendCare Backend")
+# Update these imports to match your new modular files
+from app.api.user_routes import router as user_router
+from app.api.admin_routes import router as admin_router
+from app.api.machine_routes import router as machine_router
+from app.core.database import init_db
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # This runs when the server starts
+    await init_db()
+    yield
+    # This runs when the server stops
+
+app = FastAPI(
+    title="VendCare Professional API",
+    description="Backend for Vending Machine, User Wallet, and Admin Dashboard",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# CORS Setup for Next.js
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Register the modular routers
+app.include_router(user_router, prefix="/api/user", tags=["User App"])
+app.include_router(admin_router, prefix="/api/admin", tags=["Admin Portal"])
+app.include_router(machine_router, prefix="/api/machine", tags=["Vending Machine"])
 
-# Include the routes we just wrote
-app.include_router(api_router, prefix="/api")
 
-@app.websocket("/ws/payment-status/{transaction_id}")
-async def websocket_endpoint(websocket: WebSocket, transaction_id: str):
-    await ws_manager.connect(websocket, transaction_id)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        ws_manager.disconnect(transaction_id)
+@app.get("/")
+async def root():
+    return {"status": "Online", "message": "VendCare Multi-Portal API is running"}
