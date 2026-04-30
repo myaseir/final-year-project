@@ -98,15 +98,28 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
 @router.websocket("/payment-status/{tid}")
 async def payment_status_ws(websocket: WebSocket, tid: str):
     await websocket.accept()
+    print(f"DEBUG: Kiosk connected to WS for TID: {tid}")
     try:
         while True:
             txn = active_transactions.get(tid)
-            if txn and txn["status"] == "PAID":
+            
+            if not txn:
+                # If the TID is missing, the session might have expired/restarted
+                await websocket.send_json({"status": "EXPIRED"})
+                break
+
+            if txn["status"] == "PAID":
+                print(f"DEBUG: Transaction {tid} marked as PAID. Notifying Kiosk.")
                 await websocket.send_json({"status": "PAID"})
                 break
-            await asyncio.sleep(1)
+            
+            # Use a slightly faster sleep for better UX (0.5s)
+            await asyncio.sleep(0.5)
+            
     except WebSocketDisconnect:
-        pass
+        print(f"DEBUG: Kiosk disconnected from WS: {tid}")
+    except Exception as e:
+        print(f"DEBUG: WebSocket Error: {e}")
 
 @router.websocket("/ws/hardware/{m_id}")
 async def hardware_bridge(websocket: WebSocket, m_id: str):
