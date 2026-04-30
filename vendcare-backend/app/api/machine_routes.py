@@ -1,5 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Body
-from app.api.schemas import DispenseRequest, PaymentRequest, ConfirmPaymentRequest # Added ConfirmPaymentRequest
+from app.api.schemas import DispenseRequest, PaymentRequest, ConfirmPaymentRequest
 from app.services.machine_service import machine_service
 import uuid
 import asyncio
@@ -10,15 +10,13 @@ router = APIRouter()
 
 # --- Memory Management ---
 active_machines: Dict[str, WebSocket] = {}
-# Stores temporary session data for QR payments: { tid: {"status": str, "pid": str, "amount": int, "m_id": str} }
 active_transactions: Dict[str, dict] = {} 
 
 # --- 1. MANUAL METHOD (Identifier + PIN) ---
 @router.post("/verify-and-dispense")
 async def handle_manual_dispense(data: DispenseRequest):
-    # Updated: Now uses data.identifier to support Email or CNIC
     result = await machine_service.process_dispense(
-        identifier=data.identifier, # Updated from data.cnic
+        identifier=data.identifier, 
         pin=data.pin,
         amount=data.selected_amount,
         product=data.product_name,
@@ -28,7 +26,6 @@ async def handle_manual_dispense(data: DispenseRequest):
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     
-    # Immediate Hardware Trigger
     target_ws = active_machines.get(data.machine_id)
     if target_ws:
         await target_ws.send_json({
@@ -43,7 +40,8 @@ async def handle_manual_dispense(data: DispenseRequest):
 @router.post("/create-qr-payment")
 async def create_qr_payment(request: PaymentRequest):
     transaction_id = str(uuid.uuid4())
-    frontend_base_url = os.getenv("FRONTEND_URL", "http://127.0.0.1:3001")
+    # Ensure this environment variable is set to your Vercel URL
+    frontend_base_url = os.getenv("FRONTEND_URL", "https://final-year-project-f8ym.vercel.app")
     
     active_transactions[transaction_id] = {
         "status": "PENDING",
@@ -59,8 +57,7 @@ async def create_qr_payment(request: PaymentRequest):
         "checkout_url": checkout_url
     }
 
-# --- 3. QR METHOD: STEP 2 (Mobile Confirmation & Wallet Deduction) ---
-# FIX: Use ConfirmPaymentRequest to solve the 422 "cnic required" error
+# --- 3. QR METHOD: STEP 2 (Mobile Confirmation) ---
 @router.post("/confirm-payment/{transaction_id}")
 async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     if transaction_id not in active_transactions:
@@ -68,10 +65,9 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     
     txn_data = active_transactions[transaction_id]
     
-    # 1. Logic to deduct balance using flexible identifier
     user_result = await machine_service.process_mobile_payment(
-        identifier=data.identifier, # Updated to use the new schema field
-        pin=data.pin, # Pass the PIN for guest/session validation
+        identifier=data.identifier, 
+        pin=data.pin,
         amount=txn_data["price"],
         product_id=txn_data["product_id"],
         m_id=txn_data["machine_id"]
@@ -80,10 +76,10 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     if not user_result["success"]:
         raise HTTPException(status_code=400, detail=user_result["message"])
     
-    # 2. Update status for Kiosk WebSocket
+    # Update status for Polling/WebSocket
     txn_data["status"] = "PAID"
     
-    # 3. Trigger Hardware
+    # Trigger Hardware
     target_ws = active_machines.get(txn_data["machine_id"])
     if target_ws:
         await target_ws.send_json({
@@ -94,32 +90,42 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     
     return {"status": "success", "message": "Dispensing..."}
 
-# --- 4. WEBSOCKETS ---
+# --- 4. NEW: POLLING ENDPOINT (Fixes the 404 Error) ---
+@router.get("/payment-status-check/{tid}")
+async def payment_status_check(tid: str):
+    """
+    Kiosk calls this every 2 seconds to check if status is 'PAID'.
+    """
+    txn = active_transactions.get(tid)
+    if not txn:
+        return {"status": "NOT_FOUND"}
+    
+    current_status = txn["status"]
+    
+    # Optional: Clean up memory if transaction is finished
+    # if current_status == "PAID":
+    #     # Don't delete immediately, or polling might miss it. 
+    #     # Better to let a background task clean it after 10 minutes.
+    #     pass
+
+    return {"status": current_status}
+
+# --- 5. WEBSOCKETS (Keep for local testing, though Vercel blocks them) ---
 @router.websocket("/payment-status/{tid}")
 async def payment_status_ws(websocket: WebSocket, tid: str):
     await websocket.accept()
-    print(f"DEBUG: Kiosk connected to WS for TID: {tid}")
     try:
         while True:
             txn = active_transactions.get(tid)
-            
             if not txn:
-                # If the TID is missing, the session might have expired/restarted
                 await websocket.send_json({"status": "EXPIRED"})
                 break
-
             if txn["status"] == "PAID":
-                print(f"DEBUG: Transaction {tid} marked as PAID. Notifying Kiosk.")
                 await websocket.send_json({"status": "PAID"})
                 break
-            
-            # Use a slightly faster sleep for better UX (0.5s)
             await asyncio.sleep(0.5)
-            
     except WebSocketDisconnect:
-        print(f"DEBUG: Kiosk disconnected from WS: {tid}")
-    except Exception as e:
-        print(f"DEBUG: WebSocket Error: {e}")
+        pass
 
 @router.websocket("/ws/hardware/{m_id}")
 async def hardware_bridge(websocket: WebSocket, m_id: str):
@@ -127,7 +133,7 @@ async def hardware_bridge(websocket: WebSocket, m_id: str):
     active_machines[m_id] = websocket
     try:
         while True:
-            await websocket.receive_text() # Heartbeat
+            await websocket.receive_text()
     except WebSocketDisconnect:
         if m_id in active_machines:
             del active_machines[m_id]
