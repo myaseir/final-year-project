@@ -5,33 +5,36 @@ import Link from 'next/link';
 import { api } from '../lib/api';
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({ cnic: '', pin: '' });
+  // Use 'identifier' to store either Email or CNIC
+  const [formData, setFormData] = useState({ identifier: '', pin: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
- const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  try {
-    const res = await api.login(formData.cnic, formData.pin);
-    
-    // STRICT CHECK: Only proceed if backend returns success: true
-    if (res && res.success === true) { 
-      localStorage.setItem('userCnic', formData.cnic);
-      router.push('/dashboard');
-    } else {
-      // If backend says success: false, show the error message
-      setError(res.message || 'Incorrect CNIC or PIN. Please try again.');
+    try {
+      // API call now passes 'identifier' instead of strictly 'cnic'
+      const res = await api.login(formData.identifier, formData.pin);
+      
+      if (res && res.success === true) { 
+        // Backend returns the actual user object; use res.user.cnic 
+        // to ensure dashboard queries remain consistent
+        localStorage.setItem('userCnic', res.user.cnic);
+        localStorage.setItem('userEmail', res.user.email);
+        router.push('/dashboard');
+      } else {
+        setError(res.message || 'Invalid Credentials. Please try again.');
+      }
+    } catch (err) {
+      setError('Server connection failed. Please check your network.');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError('Server is offline. Please check your backend.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] px-6 relative overflow-hidden">
@@ -50,17 +53,17 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* CNIC Input */}
+          {/* Identity Input (Email or CNIC) */}
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#E29595] ml-5">
-              CNIC Identity
+              Account Identity
             </label>
             <input 
               type="text" 
               required
-              placeholder="42101XXXXXXXX"
+              placeholder="Email or CNIC Number"
               className="w-full p-4 bg-white/80 border border-[#F9EAEA] rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-[#E29595]/10 transition-all placeholder:text-[#F3C5C5] text-[#4A3F3F]"
-              onChange={(e) => setFormData({...formData, cnic: e.target.value})}
+              onChange={(e) => setFormData({...formData, identifier: e.target.value})}
             />
           </div>
 
@@ -81,7 +84,7 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-100 text-red-500 text-[11px] py-2 px-4 rounded-full text-center font-medium">
+            <div className="bg-red-50 border border-red-100 text-red-500 text-[11px] py-2 px-4 rounded-full text-center font-medium animate-pulse">
               {error}
             </div>
           )}
@@ -106,7 +109,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Aesthetic Footer Note */}
       <p className="mt-8 text-[10px] uppercase tracking-[0.3em] text-[#F3C5C5] font-bold">
         Secure IoT Authentication
       </p>

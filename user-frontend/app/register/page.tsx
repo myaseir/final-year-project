@@ -39,7 +39,7 @@ const handleRegister = async (e: React.FormEvent) => {
 };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[90vh] px-6 py-16 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-[90vh] px-6 py-0 relative overflow-hidden">
       {/* Soft Gradient Decorative Elements */}
       <div className="absolute top-1/3 -right-20 w-80 h-80 bg-[#FFF5F5] rounded-full blur-[100px] opacity-70 -z-10"></div>
       <div className="absolute bottom-1/4 -left-20 w-64 h-64 bg-[#F9EAEA] rounded-full blur-[100px] opacity-70 -z-10"></div>
@@ -54,7 +54,7 @@ const handleRegister = async (e: React.FormEvent) => {
           </p>
         </div>
 
-        <form onSubmit={handleRegister} className="mt-10 space-y-5">
+        <form onSubmit={handleRegister} className="mt-10 space-y-2">
           
           {/* Full Name Input */}
           <div className="space-y-1.5">
