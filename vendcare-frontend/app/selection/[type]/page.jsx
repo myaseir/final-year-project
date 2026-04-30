@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation'; // Added useRouter
 import { 
   ChevronLeft, 
   CheckCircle2, 
@@ -70,6 +70,7 @@ export default function SelectionPage() {
   const type = params.type || 'perfumes';
   const theme = CONTENT_MAP[type];
 
+  const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
   const [loadingProduct, setLoadingProduct] = useState(null); 
   const [activeTransaction, setActiveTransaction] = useState(null); 
@@ -108,47 +109,77 @@ export default function SelectionPage() {
     }
   };
 
-  const handleManualAuth = async (e) => {
-    e.preventDefault();
-    if (!selectedProduct) return;
-    
-    setIsAuthorizing(true);
-    setErrorStatus(null);
+ // --- 1. UPDATED MANUAL AUTH ---
+const handleManualAuth = async (e) => {
+  e.preventDefault();
+  if (!selectedProduct) return;
+  
+  setIsAuthorizing(true);
+  setErrorStatus(null);
 
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const response = await fetch(`${baseUrl}/api/machine/verify-and-dispense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cnic: String(cnic),
-          pin: String(pin),
-          selected_amount: Number(selectedProduct.price),
-          product_name: String(selectedProduct.name),
-          machine_id: "VEND-UNIT-01"
-        }),
-      });
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    const response = await fetch(`${baseUrl}/api/machine/verify-and-dispense`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // Updated field name to 'identifier' to match updated backend schema
+        identifier: String(cnic), 
+        pin: String(pin),
+        selected_amount: Number(selectedProduct.price),
+        product_name: String(selectedProduct.name),
+        machine_id: "VEND-UNIT-01"
+      }),
+    });
 
-      if (response.ok) {
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-          setSelectedProduct(null);
-          setCnic('');
-          setPin('');
-        }, 5000);
-      } else {
-  // We still consume the response to clear the buffer, 
-  // but we don't log the "error" to the console anymore.
-  await response.json(); 
-  setErrorStatus("Invalid Credentials");
-}
-    } catch (error) {
-      setErrorStatus("Connection Error");
-    } finally {
-      setIsAuthorizing(false);
+    const data = await response.json();
+
+    if (response.ok) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setSelectedProduct(null);
+        setCnic('');
+        setPin('');
+        // Optional: Redirect home after success
+        router.push('/'); 
+      }, 6000);
+    } else {
+      // Use the detail message from backend (e.g., "Insufficient Balance")
+      setErrorStatus(data.detail || "Invalid Credentials");
+    }
+  } catch (error) {
+    setErrorStatus("Connection Error");
+  } finally {
+    setIsAuthorizing(false);
+  }
+};
+
+// --- 2. UPDATED WEBSOCKET LISTENER ---
+useEffect(() => {
+  if (!activeTransaction?.transactionId) return;
+
+  // Use environment variable for WebSocket URL
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000";
+  const ws = new WebSocket(`${wsUrl}/api/machine/payment-status/${activeTransaction.transactionId}`);
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.status === 'PAID') {
+      setShowSuccess(true);
+      setActiveTransaction(null);
+      setTimeout(() => { 
+        setShowSuccess(false); 
+        setSelectedProduct(null); 
+        router.push('/');
+      }, 6000);
     }
   };
+
+  ws.onerror = () => console.error("WebSocket Connection Failed");
+  
+  return () => ws.close();
+}, [activeTransaction?.transactionId]);
 
   useEffect(() => {
     if (!activeTransaction?.transactionId) return;
