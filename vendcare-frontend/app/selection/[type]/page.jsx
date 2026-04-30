@@ -123,32 +123,35 @@ export default function SelectionPage() {
 
   // --- 3. CONSOLIDATED WEBSOCKET LISTENER ---
   useEffect(() => {
-    if (!activeTransaction?.transactionId) return;
+  if (!activeTransaction?.transactionId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ;
-    const ws = new WebSocket(`${wsUrl}/api/machine/payment-status/${activeTransaction.transactionId}`);
+  const tid = activeTransaction.transactionId;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
 
-    console.log(`Connecting to status socket for: ${activeTransaction.transactionId}`);
+  console.log(`Checking status for TID: ${tid} via Polling...`);
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log("WebSocket Message Received:", data); // Constant monitoring log
+  // Setting up an interval to check the status every 2 seconds
+  const statusInterval = setInterval(async () => {
+    try {
+      const response = await fetch(`${apiUrl}/api/machine/payment-status-check/${tid}`);
+      const data = await response.json();
+      
+      console.log("Polling Update:", data);
 
       if (data.status === 'PAID') {
+        console.log("Payment Confirmed via Polling!");
         setShowSuccess(true);
         setActiveTransaction(null);
-        setTimeout(() => { 
-          router.push('/');
-        }, 7000);
+        clearInterval(statusInterval); // Stop polling
+        setTimeout(() => { router.push('/'); }, 7000);
       }
-    };
+    } catch (err) {
+      console.error("Polling Error:", err);
+    }
+  }, 2000);
 
-    ws.onerror = (err) => console.error("WebSocket Error:", err);
-    ws.onclose = () => console.log("WebSocket Connection Closed");
-    
-    return () => ws.close();
-  }, [activeTransaction?.transactionId, router]);
-
+  return () => clearInterval(statusInterval); // Cleanup on unmount
+}, [activeTransaction?.transactionId, router]);
   return (
     <div className={`h-screen w-full flex flex-col ${theme.bg} overflow-hidden font-sans select-none`}>
       <header className="p-6">
