@@ -321,7 +321,7 @@ export default function SelectionPage() {
             </div>
             
             <p className="mt-8 text-[9px] font-bold uppercase tracking-[0.3em] opacity-30">
-              {authMode === 'qr' ? 'Scan with Mobile App' : 'Secure Member Login'}
+              {authMode === 'qr' ? 'Scan with Mobile' : ''}
             </p>
           </div>
         </div>
