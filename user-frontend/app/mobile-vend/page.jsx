@@ -8,10 +8,15 @@ function MobilePaymentContent() {
   const searchParams = useSearchParams();
   const tid = searchParams.get('tid');
   
-  // States: 'checking', 'guest-form', 'processing', 'success', 'error'
-  const [status, setStatus] = useState('checking');
+  const [status, setStatus] = useState('checking'); 
   const [formData, setFormData] = useState({ identifier: '', pin: '' });
   const [errorDetail, setErrorDetail] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted to true once component hits the browser
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const processPayment = async (identifier, pin) => {
     setStatus('processing');
@@ -30,48 +35,69 @@ function MobilePaymentContent() {
         setStatus('success');
       } else {
         setStatus('error');
-        setErrorDetail(data.detail || 'Transaction failed');
+        setErrorDetail(data.detail || 'Invalid credentials or balance');
       }
     } catch (err) {
       setStatus('error');
-      setErrorDetail('Server unreachable');
+      setErrorDetail('Server unreachable. Ensure backend is live.');
     }
   };
 
   useEffect(() => {
-    const savedId = localStorage.getItem('userEmail') || localStorage.getItem('userCnic');
-    
-    // 1. Initial Logic: Check for saved session
-    if (savedId && tid) {
-      // If logged in, we attempt auto-deduct. 
-      // Note: Backend must handle "SESSION_AUTH" or similar if PIN is not stored locally for security.
-      processPayment(savedId, "SESSION_AUTH"); 
-    } else if (tid) {
-      // 2. No session found: Transition to guest form
-      setStatus('guest-form');
-    }
-  }, [tid]);
+    // Only run this if the component is mounted and tid exists
+    if (!mounted || !tid) return;
+
+    const checkSession = () => {
+      const savedEmail = localStorage.getItem('userEmail');
+      const savedCnic = localStorage.getItem('userCnic');
+      const savedId = savedEmail || savedCnic;
+      
+      if (savedId) {
+        processPayment(savedId, "SESSION_AUTH"); 
+      } else {
+        // Force the UI to show the form if no identity exists
+        setStatus('guest-form');
+      }
+    };
+
+    // Small delay ensures localStorage is accessible after hydration
+    const timer = setTimeout(checkSession, 500);
+    return () => clearTimeout(timer);
+  }, [mounted, tid]);
+
+  // Safety UI for missing TID
+  if (mounted && !tid) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#fff5f8]">
+        <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
+        <h1 className="text-xl font-bold text-[#4A3F3F]">Invalid URL</h1>
+        <p className="text-sm text-[#8C7A7A]">Transaction ID is missing from QR code.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#fff5f8]">
       
-      {/* LOADING / CHECKING STATE */}
       {(status === 'checking' || status === 'processing') && (
-        <div className="text-center space-y-4 animate-pulse">
+        <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-[#d8a7b9] mx-auto" />
           <h1 className="text-xl font-bold text-[#4A3F3F]">
             {status === 'checking' ? 'Authorizing Session...' : 'Verifying Transaction...'}
           </h1>
-          <p className="text-xs text-[#8C7A7A] uppercase tracking-widest">Glacia Labs Secure IoT</p>
+          <p className="text-xs text-[#8C7A7A] uppercase tracking-[0.2em] font-medium">
+            Glacia Labs Secure IoT
+          </p>
         </div>
       )}
 
-      {/* GUEST CHECKOUT FORM */}
       {status === 'guest-form' && (
-        <div className="w-full max-w-sm bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-white animate-in slide-in-from-bottom-4 duration-500">
+        <div className="w-full max-w-sm bg-white/90 backdrop-blur-sm p-8 rounded-[2.5rem] shadow-2xl border border-white animate-in slide-in-from-bottom-4 duration-500">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-serif italic text-[#4A3F3F]">Guest Checkout</h2>
-            <p className="text-xs text-[#8C7A7A] mt-2 uppercase tracking-tighter">Enter credentials to dispense</p>
+            <h2 className="text-2xl font-serif italic text-[#4A3F3F]">Secure Payment</h2>
+            <p className="text-xs text-[#8C7A7A] mt-2 uppercase tracking-widest font-bold">
+              Verification Required
+            </p>
           </div>
 
           <div className="space-y-4">
@@ -80,7 +106,7 @@ function MobilePaymentContent() {
               <input 
                 type="text" 
                 placeholder="Email or CNIC"
-                className="w-full p-4 pl-12 bg-[#FFF5F5] rounded-full text-sm outline-none border border-transparent focus:border-[#d8a7b9] transition-all"
+                className="w-full p-4 pl-12 bg-[#FFF5F5] rounded-full text-sm outline-none border border-transparent focus:border-[#d8a7b9] transition-all text-[#4A3F3F]"
                 onChange={(e) => setFormData({...formData, identifier: e.target.value})}
               />
             </div>
@@ -91,7 +117,7 @@ function MobilePaymentContent() {
                 type="password" 
                 placeholder="4-Digit PIN"
                 maxLength={4}
-                className="w-full p-4 pl-12 bg-[#FFF5F5] rounded-full text-sm outline-none border border-transparent focus:border-[#d8a7b9] tracking-[0.5em] transition-all"
+                className="w-full p-4 pl-12 bg-[#FFF5F5] rounded-full text-sm outline-none border border-transparent focus:border-[#d8a7b9] tracking-[0.5em] text-[#4A3F3F]"
                 onChange={(e) => setFormData({...formData, pin: e.target.value})}
               />
             </div>
@@ -107,24 +133,24 @@ function MobilePaymentContent() {
         </div>
       )}
 
-      {/* SUCCESS UI */}
       {status === 'success' && (
         <div className="text-center space-y-4 animate-in zoom-in duration-300">
           <div className="bg-green-100 p-6 rounded-full inline-block">
             <CheckCircle2 className="w-16 h-16 text-green-500" />
           </div>
           <h1 className="text-3xl font-serif italic text-[#5a434f]">Payment Successful</h1>
-          <p className="text-sm text-[#8C7A7A]">The machine is now dispensing your product.</p>
+          <p className="text-sm text-[#8C7A7A]">Please collect your product from the machine.</p>
         </div>
       )}
 
-      {/* ERROR UI */}
       {status === 'error' && (
         <div className="text-center space-y-6 w-full max-w-xs">
-          <AlertCircle className="w-20 h-20 text-red-400 mx-auto" />
+          <div className="bg-red-50 p-6 rounded-full inline-block">
+            <AlertCircle className="w-12 h-12 text-red-400" />
+          </div>
           <div>
-            <h1 className="text-xl font-bold text-[#4A3F3F]">Action Required</h1>
-            <p className="text-sm text-red-500 mt-1">{errorDetail}</p>
+            <h1 className="text-xl font-bold text-[#4A3F3F]">Verification Failed</h1>
+            <p className="text-sm text-red-500 mt-2 font-medium">{errorDetail}</p>
           </div>
           <button 
             onClick={() => setStatus('guest-form')}
@@ -140,11 +166,7 @@ function MobilePaymentContent() {
 
 export default function MobileVendPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin opacity-20" />
-      </div>
-    }>
+    <Suspense fallback={null}>
       <MobilePaymentContent />
     </Suspense>
   );
