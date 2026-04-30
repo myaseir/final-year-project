@@ -53,7 +53,6 @@ export default function SelectionPage() {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [errorStatus, setErrorStatus] = useState(null);
 
-  // Clear errors on mode switch
   useEffect(() => {
     setErrorStatus(null);
   }, [authMode, selectedProduct]);
@@ -73,10 +72,9 @@ export default function SelectionPage() {
       });
       
       const data = await response.json();
-      console.log("QR Session Created:", data);
       setActiveTransaction({ transactionId: data.transaction_id, checkoutUrl: data.checkout_url });
     } catch (error) {
-      console.error("Fetch Error:", error);
+      // Quietly fail or handle error state
     } finally {
       setLoadingProduct(null);
     }
@@ -90,7 +88,7 @@ export default function SelectionPage() {
     setErrorStatus(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
       const response = await fetch(`${baseUrl}/api/machine/verify-and-dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,13 +102,12 @@ export default function SelectionPage() {
       });
 
       const data = await response.json();
-      console.log("Manual Auth Response:", data);
 
       if (response.ok) {
         setShowSuccess(true);
         setTimeout(() => {
           router.push('/'); 
-        }, 7000); // 7 seconds for user to read instructions
+        }, 7000); 
       } else {
         setErrorStatus(data.detail || "Invalid Credentials");
       }
@@ -121,37 +118,32 @@ export default function SelectionPage() {
     }
   };
 
-  // --- 3. CONSOLIDATED WEBSOCKET LISTENER ---
+  // --- 3. STATUS POLLING ---
   useEffect(() => {
-  if (!activeTransaction?.transactionId) return;
+    if (!activeTransaction?.transactionId) return;
 
-  const tid = activeTransaction.transactionId;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
+    const tid = activeTransaction.transactionId;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
 
-  console.log(`Checking status for TID: ${tid} via Polling...`);
-
-  // Setting up an interval to check the status every 2 seconds
-  const statusInterval = setInterval(async () => {
-    try {
-      const response = await fetch(`${apiUrl}/api/machine/payment-status-check/${tid}`);
-      const data = await response.json();
-      
-      console.log("Polling Update:", data);
-
-      if (data.status === 'PAID') {
-        console.log("Payment Confirmed via Polling!");
-        setShowSuccess(true);
-        setActiveTransaction(null);
-        clearInterval(statusInterval); // Stop polling
-        setTimeout(() => { router.push('/'); }, 7000);
+    const statusInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/machine/payment-status-check/${tid}`);
+        const data = await response.json();
+        
+        if (data.status === 'PAID') {
+          setShowSuccess(true);
+          setActiveTransaction(null);
+          clearInterval(statusInterval);
+          setTimeout(() => { router.push('/'); }, 7000);
+        }
+      } catch (err) {
+        // Polling continues until success or manual navigation
       }
-    } catch (err) {
-      console.error("Polling Error:", err);
-    }
-  }, 2000);
+    }, 2000);
 
-  return () => clearInterval(statusInterval); // Cleanup on unmount
-}, [activeTransaction?.transactionId, router]);
+    return () => clearInterval(statusInterval);
+  }, [activeTransaction?.transactionId, router]);
+
   return (
     <div className={`h-screen w-full flex flex-col ${theme.bg} overflow-hidden font-sans select-none`}>
       <header className="p-6">
@@ -164,7 +156,6 @@ export default function SelectionPage() {
       <main className="flex-grow flex items-center justify-center px-8 py-4 overflow-hidden">
         <div className="flex flex-row gap-10 items-stretch justify-center w-full max-w-7xl h-full max-h-[82vh]">
           
-          {/* Left: Product Selection */}
           <div className="flex flex-col justify-center gap-6">
             <div className="space-y-1 ml-2">
               <h1 className="text-2xl font-serif italic" style={{ color: theme.text }}>{theme.name}</h1>
@@ -190,7 +181,6 @@ export default function SelectionPage() {
             </div>
           </div>
 
-          {/* Right: Terminal */}
           <div className={`w-[480px] rounded-[3.5rem] flex flex-col items-center p-10 shadow-2xl border ${theme.border} bg-white/80 backdrop-blur-xl relative overflow-hidden transition-all duration-500`}>
             <div className="flex bg-gray-200/50 p-1.5 rounded-full w-full mb-8">
               <button onClick={() => setAuthMode('qr')} className={`flex-1 py-3 rounded-full text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${authMode === 'qr' ? 'bg-white shadow-md text-black' : 'opacity-40'}`}>
@@ -238,7 +228,7 @@ export default function SelectionPage() {
                   <div className="space-y-6">
                     <input 
                       type="text" placeholder="CNIC/EMAIL" 
-                      className="w-full p-5 rounded-[1.8rem] border border-gray-100 bg-gray-50/30" 
+                      className="w-full p-5 rounded-[1.8rem] border border-gray-100 bg-gray-50/30 font-medium focus:outline-none" 
                       value={cnic} onChange={(e) => setCnic(e.target.value)} required 
                     />
                     <div className="flex justify-between gap-3 relative">
