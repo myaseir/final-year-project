@@ -1,15 +1,15 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const api = {
-  // Login
-  login: (cnic, pin) => 
+  // Login - Updated to use 'identifier' for dual Email/CNIC login
+  login: (identifier, pin) => 
     fetch(`${BASE_URL}/api/user/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cnic, pin })
+      body: JSON.stringify({ identifier, pin }) // Matches the new Backend LoginRequest schema
     }).then(res => res.json()),
 
-  // --- ADD THIS REGISTER FUNCTION ---
+  // Register
   register: (data) => 
     fetch(`${BASE_URL}/api/user/register`, {
       method: 'POST',
@@ -18,8 +18,9 @@ export const api = {
     }).then(res => res.json()),
 
   // Get Profile & History
-  getProfile: (cnic) => 
-    fetch(`${BASE_URL}/api/user/profile/${cnic}`).then(res => res.json()),
+  // Updated to use 'identifier' so it works with either Email or CNIC
+  getProfile: (identifier) => 
+    fetch(`${BASE_URL}/api/user/profile/${identifier}`).then(res => res.json()),
 
   // Request Top-up
   requestTopup: (data) => 

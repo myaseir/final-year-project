@@ -13,14 +13,35 @@ class UserService:
         await user_repo.save_user(new_user)
         return {"success": True, "message": "Registration successful"}
 
-    async def login_user(self, cnic: str, pin: str):
-        user = await user_repo.get_by_cnic(cnic)
-        if not user or user.pin != pin:
-            return {"success": False, "message": "Invalid CNIC or PIN"}
-        return {"success": True, "user": user}
+    async def login_user(self, identifier: str, pin: str):
+    # Update this query to check both fields
+        user = await User.find_one({
+            "$or": [
+                {"cnic": identifier},
+                {"email": identifier}
+            ]
+        })
 
-    async def get_profile(self, cnic: str):
-        return await user_repo.get_by_cnic(cnic)
+        if not user:
+            return {"success": False, "message": "Invalid Credentials"}
+
+        if str(user.pin) != str(pin):
+            return {"success": False, "message": "Invalid Credentials"}
+
+        return {
+            "success": True, 
+            "user": user, 
+            "message": "Login successful"
+        }
+
+    async def get_profile(self, identifier: str):
+    # Find user by either email or cnic
+        return await User.find_one({
+            "$or": [
+                {"cnic": identifier},
+                {"email": identifier}
+            ]
+        })
 
     async def request_topup(self, cnic: str, amount: int, ref_id: str):
         user = await user_repo.get_by_cnic(cnic)
