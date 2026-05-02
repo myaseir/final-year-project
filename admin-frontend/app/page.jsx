@@ -18,16 +18,22 @@ export default function AdminDashboard() {
   const [processingId, setProcessingId] = useState(null);
   const [error, setError] = useState(null);
 
+  // --- API CONFIGURATION ---
+  // Pulls from .env (e.g., http://127.0.0.1:8000 or your production Vercel URL)
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
+
   // --- 1. FETCH DATA (Ledger & Analytics) ---
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Parallel fetch for ledger and volume-based analytics
+      // Parallel fetch for ledger and volume-based analytics using the base URL
       const [ledgerRes, analyticsRes] = await Promise.all([
-        fetch('https://final-year-project-f8ym.vercel.app/api/admin/pending-topups'),
-        fetch('https://final-year-project-f8ym.vercel.app/api/admin/analytics')
+        fetch(`${API_BASE_URL}/api/admin/pending-topups`),
+        fetch(`${API_BASE_URL}/api/admin/analytics`)
       ]);
+
+      if (!ledgerRes.ok || !analyticsRes.ok) throw new Error("Server responded with an error");
 
       const ledgerData = await ledgerRes.json();
       const analyticsData = await analyticsRes.json();
@@ -35,7 +41,7 @@ export default function AdminDashboard() {
       setRequests(ledgerData);
       setAnalytics(analyticsData);
     } catch (err) {
-      setError("Failed to connect to the Admin API. Ensure backend is running on port 8000.");
+      setError(`Failed to connect to the Admin API at ${API_BASE_URL}. Ensure the backend service is active.`);
     } finally {
       setLoading(false);
     }
@@ -48,7 +54,7 @@ export default function AdminDashboard() {
   const handleApprove = async (cnic, reference_id) => {
     setProcessingId(reference_id);
     try {
-      const response = await fetch('https://final-year-project-f8ym.vercel.app/api/admin/approve-topup', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/approve-topup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cnic, reference_id }),
@@ -125,7 +131,6 @@ export default function AdminDashboard() {
 
         {/* --- ANALYTICS GRAPHS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          {/* Chart 1: Product Volume Preferences */}
           <div className="bg-white p-10 border border-[#F9EAEA] rounded-[3rem] shadow-sm">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-xl font-serif italic">Avg. Dosage per Essence</h3>
@@ -146,7 +151,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Chart 2: Top Customers by Expenditure */}
           <div className="bg-white p-10 border border-[#F9EAEA] rounded-[3rem] shadow-sm">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-xl font-serif italic">Client Expenditure</h3>
