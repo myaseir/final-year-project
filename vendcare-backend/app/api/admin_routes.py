@@ -41,13 +41,17 @@ async def get_analytics():
     # Hits the updated AdminService logic for volume-based profit and trends
     return await admin_service.get_dashboard_analytics()
 
+# In app/api/routes/admin_routes.py[cite: 1]
 @router.get("/inventory")
-async def get_inventory():
+async def get_inventory(response: Response): # Add response parameter
     """
-    Returns the current fluid levels of all tanks.
+    Returns the current fluid levels. 
+    Explicitly disabling cache to ensure real-time telemetry.
     """
-    # Replace this with a call to your MongoDB database to get real tank levels.
-    # The frontend expects a list of dictionaries like the fallbackTanks above.
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     return await admin_service.get_all_tanks()
 
 @router.post("/inventory/refill")
