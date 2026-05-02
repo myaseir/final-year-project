@@ -25,8 +25,8 @@ export default function AdminDashboard() {
     try {
       // Parallel fetch for ledger and volume-based analytics
       const [ledgerRes, analyticsRes] = await Promise.all([
-        fetch('http://127.0.0.1:8000/api/admin/pending-topups'),
-        fetch('http://127.0.0.1:8000/api/admin/analytics')
+        fetch('https://final-year-project-f8ym.vercel.app/api/admin/pending-topups'),
+        fetch('https://final-year-project-f8ym.vercel.app/api/admin/analytics')
       ]);
 
       const ledgerData = await ledgerRes.json();
