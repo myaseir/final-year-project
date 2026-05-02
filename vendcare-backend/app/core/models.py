@@ -7,9 +7,11 @@ from datetime import datetime
 
 class Purchase(BaseModel):
     product_name: str
-    amount: int  # This stores the variable amount from the scroll bar
+    amount: int  
+    volume: float = 0.0# This stores the variable amount from the scroll bar
     date: str
     machine_id: str
+    type: str = "debit"
 
 class TopUpRequest(BaseModel):
     reference_id: str
