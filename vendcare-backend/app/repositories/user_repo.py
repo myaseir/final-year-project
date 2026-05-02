@@ -51,5 +51,24 @@ class UserRepository:
                 }
             )
         return None
+    
+    async def get_total_volume_dispensed(self) -> float:
+        """
+        Uses MongoDB Aggregation to calculate total volume instantly,
+        without loading thousands of user documents into server memory.
+        """
+        pipeline = [
+            {"$unwind": "$history"}, # Break out the history array
+            {"$match": {"history.type": "debit"}}, # Only look at purchases
+            {"$group": {
+                "_id": None, 
+                "total_ml": {"$sum": "$history.volume"} # Sum up the volume
+            }}
+        ]
+        
+        result = await User.aggregate(pipeline).to_list()
+        if result:
+            return result[0].get("total_ml", 0.0)
+        return 0.0
 
 user_repo = UserRepository()

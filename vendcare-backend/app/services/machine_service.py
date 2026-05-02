@@ -1,19 +1,18 @@
 from app.repositories.user_repo import user_repo
-from app.core.models import Purchase
+from app.core.models import Purchase, Tank
 from datetime import datetime
 from typing import Dict, Optional
 import uuid
 
 class MachineService:
-    # 1. PRODUCT REGISTRY: Mapped to slot IDs for hardware relay control
+    # 1. PRODUCT REGISTRY: Maps exact database names to hardware slot IDs
     PRODUCT_SLOTS = {
-        "Floral Breeze": 1, "Midnight Musk": 2, "Oceanic Mist": 3,
-        "Aqua Surge": 4, "Velvet Glow": 5, "Rain Drop": 6,
-        "Ultra Shield": 7, "Beach Guard": 8, "Daily Beam": 9
+        "Midnight Musk": 1, "Aqua Surge": 2, "Ultra Shield": 3,
+        "Velvet Glow": 4, "Rose Dew": 5, "Citrus Burst": 6,
+        "Vanilla Silk": 7, "Herbal Mint": 8, "Ocean Breeze": 9
     }
 
-    # 2. PRICE RATES: Base rates per 1ml to verify frontend calculations
-    # Perfume: Rs 20/ml | Others: Rs 16.67/ml (approx Rs 50 for 3ml)
+    # 2. PRICE RATES: PKR per 1ml
     PRICE_RATES = {
         "perfumes": 20.0,
         "moisturizers": 16.67,
@@ -21,26 +20,41 @@ class MachineService:
     }
 
     def _calculate_server_price(self, product_name: str, volume: float) -> int:
-        """Helper to verify price based on product category and volume."""
-        # Determine category based on product name mapping
+        """Helper to verify price based on synchronized product names."""
         category = "perfumes"
-        if product_name in ["Aqua Surge", "Velvet Glow", "Rain Drop"]:
+        
+        # Matches Slots 4, 5, 6 (Moisturizers)[cite: 8]
+        if product_name in ["Velvet Glow", "Rose Dew", "Citrus Burst"]:
             category = "moisturizers"
-        elif product_name in ["Ultra Shield", "Beach Guard", "Daily Beam"]:
+        # Matches Slots 7, 8, 9 (Sunscreens)[cite: 8]
+        elif product_name in ["Vanilla Silk", "Herbal Mint", "Ocean Breeze"]:
             category = "sunscreens"
+        # Slots 1, 2, 3 default to "perfumes"[cite: 8]
             
         rate = self.PRICE_RATES.get(category, 20.0)
         return round(volume * rate)
 
+    async def _deduct_tank_inventory(self, slot_id: int, volume: float):
+        """
+        Decreases the physical fluid level in MongoDB based on dispensed volume.
+        This is the critical link for the Admin Panel display[cite: 8].
+        """
+        # Find the tank matching the hardware slot index[cite: 8]
+        tank = await Tank.find_one(Tank.tank_index == slot_id)
+        if tank:
+            # Subtract the dispensed volume (ml)[cite: 8]
+            tank.current_level = max(0, tank.current_level - volume)
+            await tank.save()
+            return True
+        return False
+
     async def process_dispense(self, identifier: str, pin: str, product: str, volume: float, m_id: str):
-        """
-        Handles physical machine interaction (Manual Method) with Volume logic.
-        """
+        """Handles physical machine interaction via identifier and PIN[cite: 2, 8]."""
         slot_id = self.PRODUCT_SLOTS.get(product)
         if not slot_id:
             return {"success": False, "message": f"Product '{product}' not mapped to a slot"}
 
-        # Calculate required amount on server to prevent manipulation
+        # Calculate required amount on server to prevent manipulation[cite: 8]
         required_amount = self._calculate_server_price(product, volume)
 
         user = await user_repo.get_by_identifier(identifier)
@@ -53,27 +67,27 @@ class MachineService:
         if user.balance < required_amount:
             return {"success": False, "message": f"Insufficient funds. Required: {required_amount} PKR"}
 
-        # Perform Deduction
+        # --- DATABASE UPDATES ---
+        # 1. Update User Balance & History[cite: 8]
         user.balance -= required_amount
-        
-        # Log purchase with Volume info for Admin Analytics
-        new_purchase = Purchase(
+        user.history.append(Purchase(
             product_name=product,
             amount=required_amount, 
-            volume=volume, # Ensure your Purchase model has this field
+            volume=volume,
             date=datetime.now().strftime("%Y-%m-%d %H:%M"),
             machine_id=m_id,
             type="debit"
-        )
-        
-        user.history.append(new_purchase)
+        ))
         await user_repo.update_user(user)
+
+        # 2. Update Tank Fluid Level (The missing link for Admin levels)[cite: 8]
+        await self._deduct_tank_inventory(slot_id, volume)
         
         return {
             "success": True, 
             "message": "Dispense authorized", 
             "slot_id": slot_id,
-            "volume": volume, # IoT hardware uses this to set pump duration
+            "volume": volume,
             "data": {
                 "remaining_balance": user.balance,
                 "transaction_id": f"TXN-{uuid.uuid4().hex[:8].upper()}"
@@ -81,13 +95,12 @@ class MachineService:
         }
 
     async def process_mobile_payment(self, identifier: str, pin: str, product_id: str, volume: float, m_id: str):
-        """
-        Handles the wallet deduction for QR/Mobile scans with Volume logic.
-        """
+        """Handles wallet deduction for QR/Mobile scans[cite: 2, 8]."""
+        # Synchronized with User Frontend IDs[cite: 8]
         id_to_name = {
-            "p1": "Floral Breeze", "p2": "Midnight Musk", "p3": "Oceanic Mist",
-            "m1": "Aqua Surge", "m2": "Velvet Glow", "m3": "Rain Drop",
-            "s1": "Ultra Shield", "s2": "Beach Guard", "s3": "Daily Beam"
+            "p1": "Midnight Musk", "p2": "Aqua Surge", "p3": "Ultra Shield",
+            "m1": "Velvet Glow", "m2": "Rose Dew", "m3": "Citrus Burst",
+            "s1": "Vanilla Silk", "s2": "Herbal Mint", "s3": "Ocean Breeze"
         }
         
         product_name = id_to_name.get(product_id)
@@ -96,7 +109,6 @@ class MachineService:
         if not slot_id:
             return {"success": False, "message": "Invalid Product ID"}
 
-        # Calculate Price
         required_amount = self._calculate_server_price(product_name, volume)
 
         user = await user_repo.get_by_identifier(identifier)
@@ -109,7 +121,8 @@ class MachineService:
         if user.balance < required_amount:
             return {"success": False, "message": "Insufficient Wallet Balance"}
 
-        # Deduct and Update
+        # --- DATABASE UPDATES ---
+        # 1. Update User Balance & History[cite: 8]
         user.balance -= required_amount
         user.history.append(Purchase(
             product_name=product_name,
@@ -119,8 +132,10 @@ class MachineService:
             machine_id=m_id,
             type="debit"
         ))
-        
         await user_repo.update_user(user)
+
+        # 2. Update Tank Inventory[cite: 8]
+        await self._deduct_tank_inventory(slot_id, volume)
 
         return {
             "success": True, 

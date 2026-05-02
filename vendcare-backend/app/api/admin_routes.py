@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Response
 from app.api.schemas import AdminActionSchema
+from app.api.schemas import RefillRequest
 from app.services.admin_service import admin_service
-
+from fastapi.responses import PlainTextResponse
 router = APIRouter()
 
 @router.get("/pending-topups")
@@ -39,3 +40,26 @@ async def get_analytics():
     """
     # Hits the updated AdminService logic for volume-based profit and trends
     return await admin_service.get_dashboard_analytics()
+
+@router.get("/inventory")
+async def get_inventory():
+    """
+    Returns the current fluid levels of all tanks.
+    """
+    # Replace this with a call to your MongoDB database to get real tank levels.
+    # The frontend expects a list of dictionaries like the fallbackTanks above.
+    return await admin_service.get_all_tanks()
+
+@router.post("/inventory/refill")
+async def refill_inventory(req: RefillRequest):
+    """
+    Handles manual admin refills.
+    If req.target == 'all', set all tanks to their max capacity.
+    If req.target is an integer, set only that specific tank to max capacity.
+    """
+    success = await admin_service.process_refill(req.target)
+    
+    if not success:
+        raise HTTPException(status_code=400, detail="Refill failed")
+        
+    return {"success": True, "message": f"Refilled {req.target}"}

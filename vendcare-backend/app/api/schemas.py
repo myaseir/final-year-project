@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-
+from typing import Union
 # --- USER APP SCHEMAS ---
 class UserRegisterRequest(BaseModel):
     cnic: str = Field(..., example="42101-1234567-1")
@@ -46,3 +46,6 @@ class ConfirmPaymentRequest(BaseModel):
 class AdminActionSchema(BaseModel):
     cnic: str = Field(..., example="42101-1234567-1")
     reference_id: str = Field(..., example="TXN-998877")
+    
+class RefillRequest(BaseModel):
+    target: Union[int, str]
