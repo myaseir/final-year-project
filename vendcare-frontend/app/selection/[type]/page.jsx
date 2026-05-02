@@ -10,33 +10,34 @@ import {
   ShieldAlert, Smartphone, Keyboard, AlertCircle, Droplets,
   Heart
 } from 'lucide-react';
+import { motion, AnimatePresence } from "framer-motion";
 
 const CONTENT_MAP = {
   perfumes: {
     name: "Luxury Fragrances", bg: "bg-[#fff5f8]", accent: "#d8a7b9", secondary: "#fce3ec", text: "#5a434f", border: "border-[#f3d8e5]",
     min: 1, max: 10, step: 1, basePrice: 20,
     products: [
-      { id: "p1", name: "Floral Breeze", desc: "Fresh Petal Extract", icon: <Flower2 size={32} /> },
-      { id: "p2", name: "Midnight Musk", desc: "Deep Wood Notes", icon: <Flame size={32} /> },
-      { id: "p3", name: "Oceanic Mist", desc: "Cool Aqua Cologne", icon: <Wind size={32} /> }
+      { id: "p1", name: "Midnight Musk", desc: "Deep Wood Notes", icon: <Flame size={32} /> },
+      { id: "p2", name: "Aqua Surge", desc: "Cool Aqua Cologne", icon: <Wind size={32} /> }, // Note: Adjusted to match Tank #2
+      { id: "p3", name: "Ultra Shield", desc: "Premium Essence", icon: <Flower2 size={32} /> } // Note: Adjusted to match Tank #3
     ]
   },
   moisturizers: {
     name: "Hydration Gallery", bg: "bg-[#f5fbff]", accent: "#a7c7d8", secondary: "#e3f4fc", text: "#43525a", border: "border-[#d8e8f3]",
     min: 0.5, max: 3, step: 0.5, basePrice: 16.67,
     products: [
-      { id: "m1", name: "Aqua Surge", desc: "Hyaluronic Gel", icon: <Waves size={32} /> },
-      { id: "m2", name: "Velvet Glow", desc: "Shea & Aloe Vera", icon: <Bath size={32} /> },
-      { id: "m3", name: "Rain Drop", desc: "Lightweight Serum", icon: <CloudRain size={32} /> }
+      { id: "m1", name: "Velvet Glow", desc: "Hyaluronic Gel", icon: <Waves size={32} /> },
+      { id: "m2", name: "Rose Dew", desc: "Shea & Aloe Vera", icon: <Bath size={32} /> },
+      { id: "m3", name: "Citrus Burst", desc: "Lightweight Serum", icon: <CloudRain size={32} /> }
     ]
   },
   sunscreens: {
     name: "Solar Protection", bg: "bg-[#fffcf5]", accent: "#d8bca7", secondary: "#fcf6e3", text: "#5a4f43", border: "border-[#f3e9d8]",
     min: 0.5, max: 3, step: 0.5, basePrice: 16.67,
     products: [
-      { id: "s1", name: "Ultra Shield", desc: "SPF 50+ Protection", icon: <ShieldAlert size={32} /> },
-      { id: "s2", name: "Beach Guard", desc: "Water Resistant", icon: <Umbrella size={32} /> },
-      { id: "s3", name: "Daily Beam", desc: "Non-Greasy Finish", icon: <SunMedium size={32} /> }
+      { id: "s1", name: "Vanilla Silk", desc: "SPF 50+ Protection", icon: <ShieldAlert size={32} /> },
+      { id: "s2", name: "Herbal Mint", desc: "Water Resistant", icon: <Umbrella size={32} /> },
+      { id: "s3", name: "Ocean Breeze", desc: "Non-Greasy Finish", icon: <SunMedium size={32} /> }
     ]
   }
 };
@@ -155,7 +156,7 @@ export default function SelectionPage() {
   };
 
   return (
-    <div className={`h-screen w-full flex flex-col ${theme.bg} overflow-hidden font-sans select-none bg-white`}>
+    <div className={`h-screen w-full flex flex-col ${theme.bg} overflow-hidden font-sans select-none bg-transparent`}>
       <header className="p-6">
         <Link href="/" className="flex items-center gap-2 group text-[#4A3F3F]">
           <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
@@ -284,32 +285,103 @@ export default function SelectionPage() {
       </main>
 
       {/* SUCCESS OVERLAY WITH THANK YOU MESSAGE */}
-      {showSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-2xl animate-in fade-in duration-500">
-          <div className="bg-white/90 rounded-[4rem] p-16 text-center max-w-lg w-full shadow-2xl scale-in-center animate-in zoom-in duration-500">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-8 mx-auto bg-green-500 shadow-xl">
-              <CheckCircle2 size={48} className="text-white" />
-            </div>
-            <h2 className="text-4xl font-serif italic mb-2" style={{ color: theme.text }}>Thank You!</h2>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 mb-8">Payment Confirmed</p>
-            
-            <div className="py-8 px-6 rounded-[2.5rem] bg-white border border-black/5 mt-6 space-y-4">
-              <p className="text-base font-medium text-[#4A3F3F]">Please collect your <span className="font-bold">{selectedProduct?.name}</span> ({volume}ml) from the unit.</p>
-              <div className="flex justify-center gap-2 text-[#E29595]">
-                <Heart size={16} fill="currentColor" />
-                <span className="text-[9px] font-bold uppercase tracking-widest">Self-care made simple</span>
-              </div>
-            </div>
-            
-            <div className="mt-10 flex flex-col items-center gap-3">
-               <div className="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
-                  <div className="bg-green-500 h-full animate-progress-shrink w-full origin-left"></div>
-               </div>
-               <p className="text-[9px] font-bold uppercase opacity-30 tracking-[0.2em]">Returning to menu shortly...</p>
-            </div>
+      <AnimatePresence>
+  {showSuccess && (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-2xl"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 30 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: "spring", damping: 20, stiffness: 100 }}
+        className="bg-white/90 rounded-[4rem] p-16 text-center max-w-lg w-full shadow-2xl relative overflow-hidden"
+      >
+        {/* Animated Check Icon with Scale/Shadow Pulse */}
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.1, 1],
+            boxShadow: [
+              "0px 0px 0px rgba(34, 197, 94, 0)", 
+              "0px 0px 30px rgba(34, 197, 94, 0.3)", 
+              "0px 0px 0px rgba(34, 197, 94, 0)"
+            ] 
+          }}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          className="w-24 h-24 rounded-full flex items-center justify-center mb-8 mx-auto bg-green-500 shadow-xl"
+        >
+          <CheckCircle2 size={48} className="text-white" />
+        </motion.div>
+
+        {/* Staggered Text Entrance */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.2 }
+            }
+          }}
+        >
+          <motion.h2 
+            variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+            className="text-4xl font-serif italic mb-2" 
+            style={{ color: theme.text }}
+          >
+            Thank You!
+          </motion.h2>
+          
+          <motion.p 
+            variants={{ hidden: { opacity: 0 }, visible: { opacity: 0.4 } }}
+            className="text-[10px] font-bold uppercase tracking-[0.3em] mb-8"
+          >
+            Payment Confirmed
+          </motion.p>
+        </motion.div>
+        
+        {/* Detail Box */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="py-8 px-6 rounded-[2.5rem] bg-white border border-black/5 mt-6 space-y-4"
+        >
+          <p className="text-base font-medium text-[#4A3F3F]">
+            Please collect your <span className="font-bold">{selectedProduct?.name}</span> ({volume}ml) from the unit.
+          </p>
+          
+          <div className="flex justify-center gap-2 text-[#E29595]">
+            {/* Pulsing Heart Micro-interaction */}
+            <motion.div
+              animate={{ scale: [1, 1.25, 1] }}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+            >
+              <Heart size={16} fill="currentColor" />
+            </motion.div>
+            <span className="text-[9px] font-bold uppercase tracking-widest">Self-care made simple</span>
           </div>
+        </motion.div>
+        
+        {/* Linear Progress Bar */}
+        <div className="mt-10 flex flex-col items-center gap-3">
+           <div className="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 7, ease: "linear" }}
+                className="bg-green-500 h-full origin-left"
+              />
+           </div>
+           <p className="text-[9px] font-bold uppercase opacity-30 tracking-[0.2em]">Returning to menu shortly...</p>
         </div>
-      )}
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
     </div>
   );
 }
