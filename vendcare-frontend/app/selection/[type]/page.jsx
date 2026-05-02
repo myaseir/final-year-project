@@ -7,7 +7,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   ChevronLeft, CheckCircle2, Wind, Flame, Flower2, 
   Waves, CloudRain, Bath, SunMedium, Umbrella, 
-  ShieldAlert, Smartphone, Keyboard, AlertCircle, Droplets
+  ShieldAlert, Smartphone, Keyboard, AlertCircle, Droplets,
+  Heart
 } from 'lucide-react';
 
 const CONTENT_MAP = {
@@ -22,7 +23,7 @@ const CONTENT_MAP = {
   },
   moisturizers: {
     name: "Hydration Gallery", bg: "bg-[#f5fbff]", accent: "#a7c7d8", secondary: "#e3f4fc", text: "#43525a", border: "border-[#d8e8f3]",
-    min: 0.5, max: 3, step: 0.5, basePrice: 16.67, // Calculated to reach ~Rs 50 at 3ml
+    min: 0.5, max: 3, step: 0.5, basePrice: 16.67,
     products: [
       { id: "m1", name: "Aqua Surge", desc: "Hyaluronic Gel", icon: <Waves size={32} /> },
       { id: "m2", name: "Velvet Glow", desc: "Shea & Aloe Vera", icon: <Bath size={32} /> },
@@ -46,8 +47,9 @@ export default function SelectionPage() {
   const type = params.type || 'perfumes';
   const theme = CONTENT_MAP[type];
 
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://final-year-project-f8ym.vercel.app";
+
   const [showSuccess, setShowSuccess] = useState(false);
-  const [loadingProduct, setLoadingProduct] = useState(null); 
   const [activeTransaction, setActiveTransaction] = useState(null); 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [volume, setVolume] = useState(theme.min); 
@@ -57,28 +59,52 @@ export default function SelectionPage() {
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [errorStatus, setErrorStatus] = useState(null);
 
-  // Dynamic Price Calculation
   const currentPrice = selectedProduct ? Math.round(volume * theme.basePrice) : 0;
 
   useEffect(() => {
     setErrorStatus(null);
   }, [authMode, selectedProduct, volume]);
 
-  // Refresh QR when parameters change
   useEffect(() => {
     if (selectedProduct) {
       handleSelect(selectedProduct.id, selectedProduct.name);
     }
   }, [volume]);
 
+  // --- POLLING LOGIC FOR QR PAYMENTS ---
+  useEffect(() => {
+    if (!activeTransaction?.transactionId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/machine/payment-status-check/${activeTransaction.transactionId}`);
+        const data = await res.json();
+        if (data.status === 'PAID') {
+          handleSuccessAction();
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error("Polling error", err);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [activeTransaction]);
+
+  const handleSuccessAction = () => {
+    setShowSuccess(true);
+    // Return to home page after 7 seconds
+    setTimeout(() => {
+      router.push('/');
+    }, 7000);
+  };
+
   const handleSelect = async (productId, productName) => {
-    setLoadingProduct(productId);
     setSelectedProduct({ id: productId, name: productName });
     setActiveTransaction(null); 
     
     try {
-      const baseUrl = "https://final-year-project-f8ym.vercel.app"; // Localhost for Glacia Labs dev environment
-      const response = await fetch(`${baseUrl}/api/machine/create-qr-payment`, {
+      const response = await fetch(`${API_BASE_URL}/api/machine/create-qr-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -92,8 +118,6 @@ export default function SelectionPage() {
       setActiveTransaction({ transactionId: data.transaction_id, checkoutUrl: data.checkout_url });
     } catch (error) {
       setErrorStatus("System Connectivity Error");
-    } finally {
-      setLoadingProduct(null);
     }
   };
 
@@ -103,8 +127,7 @@ export default function SelectionPage() {
     setIsAuthorizing(true);
 
     try {
-      const baseUrl = "https://final-year-project-f8ym.vercel.app";
-      const response = await fetch(`${baseUrl}/api/machine/verify-and-dispense`, {
+      const response = await fetch(`${API_BASE_URL}/api/machine/verify-and-dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,8 +143,7 @@ export default function SelectionPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setShowSuccess(true);
-        setTimeout(() => { router.push('/'); }, 7000); 
+        handleSuccessAction();
       } else {
         setErrorStatus(data.detail || "Authentication Failed");
       }
@@ -133,7 +155,7 @@ export default function SelectionPage() {
   };
 
   return (
-    <div className={`h-screen w-full flex flex-col ${theme.bg} overflow-hidden font-sans select-none`}>
+    <div className={`h-screen w-full flex flex-col ${theme.bg} overflow-hidden font-sans select-none bg-white`}>
       <header className="p-6">
         <Link href="/" className="flex items-center gap-2 group text-[#4A3F3F]">
           <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
@@ -166,12 +188,11 @@ export default function SelectionPage() {
               ))}
             </div>
 
-            {/* Precision Volume Controller */}
             <div className="bg-white/60 backdrop-blur-lg rounded-[2.5rem] p-8 border border-white mt-4">
                <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center gap-2">
                     <Droplets size={16} style={{ color: theme.accent }} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Precision Dispense</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#4A3F3F]">Precision Dispense</span>
                   </div>
                   <span className="text-xl font-serif italic font-bold" style={{ color: theme.text }}>{volume}ml</span>
                </div>
@@ -181,14 +202,13 @@ export default function SelectionPage() {
                   className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   style={{ accentColor: theme.accent }}
                />
-               <div className="flex justify-between mt-3 text-[8px] font-bold opacity-30 tracking-widest uppercase">
+               <div className="flex justify-between mt-3 text-[8px] font-bold opacity-30 tracking-widest uppercase text-[#4A3F3F]">
                   <span>Min: {theme.min}ml</span>
                   <span>Max: {theme.max}ml</span>
                </div>
             </div>
           </div>
 
-          {/* Checkout Panel */}
           <div className={`w-[450px] rounded-[3.5rem] flex flex-col items-center p-10 shadow-2xl border ${theme.border} bg-white/90 backdrop-blur-xl relative overflow-hidden`}>
             <div className="flex bg-gray-200/50 p-1.5 rounded-full w-full mb-8">
               <button onClick={() => setAuthMode('qr')} className={`flex-1 py-3 rounded-full text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${authMode === 'qr' ? 'bg-white shadow-md text-black' : 'opacity-40'}`}>
@@ -202,12 +222,12 @@ export default function SelectionPage() {
             <div className="w-full text-center mb-8">
               {selectedProduct ? (
                 <div className="animate-in fade-in zoom-in duration-300">
-                  <p className="text-[9px] font-bold uppercase opacity-30 mb-1 tracking-widest">Payable Amount</p>
+                  <p className="text-[9px] font-bold uppercase opacity-30 mb-1 tracking-widest text-[#4A3F3F]">Payable Amount</p>
                   <span className="text-3xl font-serif italic font-bold" style={{ color: theme.text }}>PKR {currentPrice}</span>
-                  <p className="text-[8px] font-bold opacity-40 mt-1 uppercase tracking-tighter">({volume}ml Dosage)</p>
+                  <p className="text-[8px] font-bold opacity-40 mt-1 uppercase tracking-tighter text-[#4A3F3F]">({volume}ml Dosage)</p>
                 </div>
               ) : (
-                <p className="text-[10px] font-bold uppercase opacity-20 py-4 tracking-[0.3em]">Select Essence & Dosage</p>
+                <p className="text-[10px] font-bold uppercase opacity-20 py-4 tracking-[0.3em] text-[#4A3F3F]">Select Essence & Dosage</p>
               )}
             </div>
 
@@ -218,8 +238,8 @@ export default function SelectionPage() {
                     <QRCode value={activeTransaction.checkoutUrl} size={220} fgColor={theme.text} bgColor="transparent" level="H" />
                   ) : (
                     <div className="text-center opacity-10 flex flex-col items-center gap-5">
-                      <Smartphone size={70} strokeWidth={1} />
-                      <p className="text-[10px] font-bold uppercase tracking-[0.4em]">Awaiting</p>
+                      <Smartphone size={70} strokeWidth={1} style={{ color: theme.text }} />
+                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#4A3F3F]">Awaiting</p>
                     </div>
                   )}
                 </div>
@@ -228,7 +248,7 @@ export default function SelectionPage() {
                   <div className="space-y-6">
                     <input 
                       type="text" placeholder="CNIC/EMAIL" 
-                      className="w-full p-5 rounded-[1.8rem] border border-gray-100 bg-gray-50/30 text-sm focus:outline-none" 
+                      className="w-full p-5 rounded-[1.8rem] border border-gray-100 bg-gray-50/30 text-sm focus:outline-none text-[#4A3F3F]" 
                       value={cnic} onChange={(e) => setCnic(e.target.value)} required 
                     />
                     <div className="flex justify-between gap-3 relative">
@@ -255,7 +275,7 @@ export default function SelectionPage() {
               <div className="absolute bottom-10 px-8 w-full">
                 <div className="bg-red-50 text-red-500 border border-red-100 px-4 py-2 rounded-full flex items-center gap-2 justify-center">
                   <AlertCircle size={14} />
-                  <span className="text-[9px] font-bold uppercase">{errorStatus}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider">{errorStatus}</span>
                 </div>
               </div>
             )}
@@ -263,15 +283,29 @@ export default function SelectionPage() {
         </div>
       </main>
 
+      {/* SUCCESS OVERLAY WITH THANK YOU MESSAGE */}
       {showSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-2xl">
-          <div className="bg-white/90 rounded-[4rem] p-16 text-center max-w-lg w-full shadow-2xl">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-8 mx-auto bg-green-500 shadow-xl">
-              <CheckCircle2 size={40} className="text-white" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-2xl animate-in fade-in duration-500">
+          <div className="bg-white/90 rounded-[4rem] p-16 text-center max-w-lg w-full shadow-2xl scale-in-center animate-in zoom-in duration-500">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mb-8 mx-auto bg-green-500 shadow-xl">
+              <CheckCircle2 size={48} className="text-white" />
             </div>
-            <h2 className="text-4xl font-serif italic mb-2" style={{ color: theme.text }}>Dosage Confirmed</h2>
-            <div className="py-6 px-6 rounded-[2.5rem] bg-white border border-black/5 mt-6">
-              <p className="text-sm font-medium">Please wait while the unit dispenses {volume}ml of {selectedProduct?.name}.</p>
+            <h2 className="text-4xl font-serif italic mb-2" style={{ color: theme.text }}>Thank You!</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 mb-8">Payment Confirmed</p>
+            
+            <div className="py-8 px-6 rounded-[2.5rem] bg-white border border-black/5 mt-6 space-y-4">
+              <p className="text-base font-medium text-[#4A3F3F]">Please collect your <span className="font-bold">{selectedProduct?.name}</span> ({volume}ml) from the unit.</p>
+              <div className="flex justify-center gap-2 text-[#E29595]">
+                <Heart size={16} fill="currentColor" />
+                <span className="text-[9px] font-bold uppercase tracking-widest">Self-care made simple</span>
+              </div>
+            </div>
+            
+            <div className="mt-10 flex flex-col items-center gap-3">
+               <div className="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+                  <div className="bg-green-500 h-full animate-progress-shrink w-full origin-left"></div>
+               </div>
+               <p className="text-[9px] font-bold uppercase opacity-30 tracking-[0.2em]">Returning to menu shortly...</p>
             </div>
           </div>
         </div>
