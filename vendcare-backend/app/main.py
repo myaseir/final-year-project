@@ -30,6 +30,7 @@ origins = [
     "http://127.0.0.1:3000",
     "https://final-year-project-iota-six.vercel.app",
     "https://final-year-project-wgam.vercel.app",
+    "https://final-year-project-hoy2.vercel.app",
 ]
 
 # 2. Dynamic Origins (Optional but recommended for Glacia Labs projects)
