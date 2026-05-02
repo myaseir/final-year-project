@@ -77,7 +77,7 @@ export default function SelectionPage() {
     setActiveTransaction(null); 
     
     try {
-      const baseUrl = "http://127.0.0.1:8000"; // Localhost for Glacia Labs dev environment
+      const baseUrl = "https://final-year-project-f8ym.vercel.app"; // Localhost for Glacia Labs dev environment
       const response = await fetch(`${baseUrl}/api/machine/create-qr-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,7 +103,7 @@ export default function SelectionPage() {
     setIsAuthorizing(true);
 
     try {
-      const baseUrl = "http://127.0.0.1:8000";
+      const baseUrl = "https://final-year-project-f8ym.vercel.app";
       const response = await fetch(`${baseUrl}/api/machine/verify-and-dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
