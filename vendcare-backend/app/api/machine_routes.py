@@ -15,11 +15,12 @@ active_transactions: Dict[str, dict] = {}
 # --- 1. MANUAL METHOD (Identifier + PIN) ---
 @router.post("/verify-and-dispense")
 async def handle_manual_dispense(data: DispenseRequest):
+    # Pass the volume parameter from the request to the service
     result = await machine_service.process_dispense(
         identifier=data.identifier, 
         pin=data.pin,
-        amount=data.selected_amount,
         product=data.product_name,
+        volume=data.volume, # Now supporting precision volume
         m_id=data.machine_id
     )
     
@@ -28,10 +29,11 @@ async def handle_manual_dispense(data: DispenseRequest):
     
     target_ws = active_machines.get(data.machine_id)
     if target_ws:
+        # Hardware payload now includes volume for pump duration control
         await target_ws.send_json({
             "cmd": "VEND", 
             "slot": result.get("slot_id", 1),
-            "ratio": data.selected_amount 
+            "volume": data.volume # IoT hardware uses this for pulse-width timing
         })
     
     return result
@@ -40,17 +42,19 @@ async def handle_manual_dispense(data: DispenseRequest):
 @router.post("/create-qr-payment")
 async def create_qr_payment(request: PaymentRequest):
     transaction_id = str(uuid.uuid4())
-    # Ensure this environment variable is set to your Vercel URL
     frontend_base_url = os.getenv("FRONTEND_URL", "https://final-year-project-f8ym.vercel.app")
     
+    # Store volume in the transaction state so price is locked
     active_transactions[transaction_id] = {
         "status": "PENDING",
         "product_id": request.product_id,
         "price": request.price,
+        "volume": request.volume, # Persistent volume state for mobile confirmation
         "machine_id": "VEND-UNIT-01"
     }
     
-    checkout_url = f"{frontend_base_url}/mobile-vend?tid={transaction_id}&pid={request.product_id}"
+    # Volume is passed as a query param to the mobile UI for user awareness
+    checkout_url = f"{frontend_base_url}/mobile-vend?tid={transaction_id}&pid={request.product_id}&vol={request.volume}"
     
     return {
         "transaction_id": transaction_id,
@@ -65,52 +69,41 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     
     txn_data = active_transactions[transaction_id]
     
+    # Mobile payment processing with stored volume
     user_result = await machine_service.process_mobile_payment(
         identifier=data.identifier, 
         pin=data.pin,
-        amount=txn_data["price"],
         product_id=txn_data["product_id"],
+        volume=txn_data["volume"], # Verified server-side
         m_id=txn_data["machine_id"]
     )
 
     if not user_result["success"]:
         raise HTTPException(status_code=400, detail=user_result["message"])
     
-    # Update status for Polling/WebSocket
     txn_data["status"] = "PAID"
     
-    # Trigger Hardware
+    # Trigger Hardware with precision volume
     target_ws = active_machines.get(txn_data["machine_id"])
     if target_ws:
         await target_ws.send_json({
             "cmd": "VEND", 
             "slot": user_result.get("slot_id", 1),
-            "ratio": txn_data["price"]
+            "volume": txn_data["volume"] # Command sent to ESP32
         })
     
-    return {"status": "success", "message": "Dispensing..."}
+    return {"status": "success", "message": f"Dispensing {txn_data['volume']}ml..."}
 
-# --- 4. NEW: POLLING ENDPOINT (Fixes the 404 Error) ---
+# --- 4. POLLING ENDPOINT ---
 @router.get("/payment-status-check/{tid}")
 async def payment_status_check(tid: str):
-    """
-    Kiosk calls this every 2 seconds to check if status is 'PAID'.
-    """
     txn = active_transactions.get(tid)
     if not txn:
         return {"status": "NOT_FOUND"}
     
-    current_status = txn["status"]
-    
-    # Optional: Clean up memory if transaction is finished
-    # if current_status == "PAID":
-    #     # Don't delete immediately, or polling might miss it. 
-    #     # Better to let a background task clean it after 10 minutes.
-    #     pass
+    return {"status": txn["status"]}
 
-    return {"status": current_status}
-
-# --- 5. WEBSOCKETS (Keep for local testing, though Vercel blocks them) ---
+# --- 5. WEBSOCKETS ---
 @router.websocket("/payment-status/{tid}")
 async def payment_status_ws(websocket: WebSocket, tid: str):
     await websocket.accept()
@@ -133,6 +126,7 @@ async def hardware_bridge(websocket: WebSocket, m_id: str):
     active_machines[m_id] = websocket
     try:
         while True:
+            # Keep connection alive
             await websocket.receive_text()
     except WebSocketDisconnect:
         if m_id in active_machines:
