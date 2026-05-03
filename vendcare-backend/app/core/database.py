@@ -6,7 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Global database instance to be used by routers
+db = None
+
 async def init_db():
+    global db
     mongo_uri = os.getenv("MONGO_URI")
     
     # Initialize the Motor Client with standard IoT security flags
@@ -18,13 +22,19 @@ async def init_db():
     
     try:
         # Targeting the specific vendcare database
-        db = client.vendcare_db 
+        current_db = client.vendcare_db 
+        
+        # Set the global db instance for use in machine_routes
+        db = current_db
         
         # Register BOTH models to avoid Beanie initialization errors
         await init_beanie(
-            database=db, 
+            database=current_db, 
             document_models=[User, Tank] 
         )
+        
+        # Create an index for the polling queue to ensure fast lookups
+        await current_db.dispense_queue.create_index([("machine_id", 1), ("status", 1)])
         
         print("✅ MongoDB Connected: vendcare_db is active and models are registered.")
         
