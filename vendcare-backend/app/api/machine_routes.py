@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Body
 from app.api.schemas import DispenseRequest, PaymentRequest, ConfirmPaymentRequest
 from app.services.machine_service import machine_service
-from app.core.database import db # Ensure your db instance is imported
+from app.core.database import get_db # Changed: Import the getter function
 import uuid
 import asyncio
 from typing import Dict
@@ -15,6 +15,11 @@ active_transactions: Dict[str, dict] = {}
 # --- 1. MANUAL METHOD (Identifier + PIN) ---
 @router.post("/verify-and-dispense")
 async def handle_manual_dispense(data: DispenseRequest):
+    # Fetch the live database instance
+    db = get_db()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
     result = await machine_service.process_dispense(
         identifier=data.identifier, 
         pin=data.pin,
@@ -32,8 +37,10 @@ async def handle_manual_dispense(data: DispenseRequest):
         "slot": result.get("slot_id", 1),
         "volume": data.volume,
         "status": "pending",
-        "timestamp": uuid.uuid4().hex # For unique tracking
+        "timestamp": uuid.uuid4().hex 
     }
+    
+    # Use the retrieved db instance
     await db.dispense_queue.insert_one(dispense_command)
     
     return result
@@ -45,7 +52,11 @@ async def check_commands(m_id: str):
     ESP32 calls this every 2 seconds. 
     It checks if there is a 'pending' dispense for this machine.
     """
-    # Find the oldest pending command for this machine
+    db = get_db()
+    if db is None:
+        return {"pending": False}
+
+    # Find and delete the oldest pending command atomically
     command = await db.dispense_queue.find_one_and_delete(
         {"machine_id": m_id, "status": "pending"}
     )
@@ -83,6 +94,10 @@ async def create_qr_payment(request: PaymentRequest):
 # --- 4. QR METHOD: STEP 2 (Mobile Confirmation) ---
 @router.post("/confirm-payment/{transaction_id}")
 async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
+    db = get_db()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
     if transaction_id not in active_transactions:
         raise HTTPException(status_code=404, detail="Transaction not found")
     
@@ -101,7 +116,7 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     
     txn_data["status"] = "PAID"
     
-    # NEW: Push to MongoDB Queue for QR Payment too
+    # Push to MongoDB Queue for QR Payment
     await db.dispense_queue.insert_one({
         "machine_id": txn_data["machine_id"],
         "slot": user_result.get("slot_id", 1),
@@ -111,7 +126,7 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     
     return {"status": "success", "message": f"Dispensing {txn_data['volume']}ml..."}
 
-# --- 5. LEGACY WEB UI STATUS (Optional) ---
+# --- 5. LEGACY WEB UI STATUS ---
 @router.get("/payment-status-check/{tid}")
 async def payment_status_check(tid: str):
     txn = active_transactions.get(tid)

@@ -6,11 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Global database instance to be used by routers
-db = None
+# We keep this internal to the module
+_db = None
 
 async def init_db():
-    global db
+    """Initializes the database connection and registers Beanie models."""
+    global _db
     mongo_uri = os.getenv("MONGO_URI")
     
     # Initialize the Motor Client with standard IoT security flags
@@ -24,10 +25,10 @@ async def init_db():
         # Targeting the specific vendcare database
         current_db = client.vendcare_db 
         
-        # Set the global db instance for use in machine_routes
-        db = current_db
+        # Set the internal global instance
+        _db = current_db
         
-        # Register BOTH models to avoid Beanie initialization errors
+        # Register models to avoid Beanie initialization errors
         await init_beanie(
             database=current_db, 
             document_models=[User, Tank] 
@@ -41,3 +42,10 @@ async def init_db():
     except Exception as e:
         print(f"❌ Database Error: {e}")
         raise e
+
+def get_db():
+    """
+    Returns the initialized database instance. 
+    Use this inside your routes to avoid NoneType errors.
+    """
+    return _db
