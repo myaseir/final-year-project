@@ -13,11 +13,11 @@ export default function MeshGradient() {
       <div 
         className="absolute inset-0 w-full h-full"
         style={{
-          background: `radial-gradient(circle at 20% 20%, #F3C5C5 0%, transparent 50%), 
-                       radial-gradient(circle at 80% 80%, #E29595 0%, transparent 50%)`,
-          opacity: 0.4,
-          filter: 'blur(60px)'
-        }}
+  background: `radial-gradient(circle at 20% 20%, #A7C7D8 0%, transparent 60%), 
+               radial-gradient(circle at 80% 80%, #f8f8f8 0%, transparent 60%)`,
+  opacity: 0.6,
+  filter: 'blur(80px)'
+}}
       />
 
       {/* Subtle Grainy Texture Overlay to keep it from looking flat */}

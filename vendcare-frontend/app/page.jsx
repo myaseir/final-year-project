@@ -65,56 +65,58 @@ export default function VendCarePage() {
           >
             
             {/* Card 1: Perfumes */}
-            <motion.div variants={itemVariants}>
-              <Link href="/selection/perfumes" className="group block w-[280px] h-[340px] bg-white border border-[#F9EAEA] rounded-[3.5rem] shadow-sm relative overflow-hidden transition-all hover:shadow-[0_20px_50px_rgba(216,167,185,0.25)]">
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full h-full flex flex-col items-center justify-center p-8"
-                >
-                  <div className="w-24 h-24 rounded-[2.2rem] bg-[#fff5f8] flex items-center justify-center mb-8 group-hover:bg-[#d8a7b9] transition-all duration-500 shadow-inner">
-                    <Sparkles size={40} strokeWidth={1} className="text-[#d8a7b9] group-hover:text-white transition-colors" />
-                  </div>
-                  <h3 className="text-2xl font-serif italic font-bold mb-2">Perfumes</h3>
-                  <p className="text-[#8C7A7A] text-[10px] font-bold uppercase tracking-[0.25em]">Signature Scents</p>
-                </motion.div>
-              </Link>
-            </motion.div>
+           <motion.div variants={itemVariants}>
+  <Link href="/selection/perfumes" className="group block w-[280px] h-[340px] bg-[#E1BEE7] border border-[#F9EAEA] rounded-[3.5rem] shadow-sm relative overflow-hidden transition-all hover:shadow-[0_20px_50px_rgba(216,167,185,0.25)]">
+    <motion.div 
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-full h-full flex flex-col items-center justify-center p-8"
+    >
+      <div className="w-24 h-24 rounded-[2.2rem] bg-[#fff5f8] flex items-center justify-center mb-8 group-hover:bg-[#d8a7b9] transition-all duration-500 shadow-inner">
+        <Sparkles size={40} strokeWidth={1} className="text-[#d8a7b9] group-hover:text-white transition-colors" />
+      </div>
+      <h3 className="text-2xl font-serif italic font-bold mb-2">Perfumes</h3>
+      <p className="text-[#8C7A7A] text-[10px] font-bold uppercase tracking-[0.25em]">Signature Scents</p>
+    </motion.div>
+  </Link>
+</motion.div>
           
             {/* Card 2: Moisturizers */}
-            <motion.div variants={itemVariants}>
-              <Link href="/selection/moisturizers" className="group block w-[280px] h-[340px] bg-white border border-[#F9EAEA] rounded-[3.5rem] shadow-sm relative overflow-hidden transition-all hover:shadow-[0_20px_50px_rgba(167,199,216,0.25)]">
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full h-full flex flex-col items-center justify-center p-8"
-                >
-                  <div className="w-24 h-24 rounded-[2.2rem] bg-[#f5fbff] flex items-center justify-center mb-8 group-hover:bg-[#a7c7d8] transition-all duration-500 shadow-inner">
-                    <Droplets size={40} strokeWidth={1} className="text-[#a7c7d8] group-hover:text-white transition-colors" />
-                  </div>
-                  <h3 className="text-2xl font-serif italic font-bold mb-2">Moisturizers</h3>
-                  <p className="text-[#8C7A7A] text-[10px] font-bold uppercase tracking-[0.25em]">Hydrate Your Glow</p>
-                </motion.div>
-              </Link>
-            </motion.div>
+          <motion.div variants={itemVariants}>
+  <Link 
+    href="/selection/moisturizers" 
+    className="group block w-[280px] h-[340px] bg-[#BBDEFB] border border-[#F9EAEA] rounded-[3.5rem] shadow-sm relative overflow-hidden transition-all hover:shadow-[0_20px_50px_rgba(167,199,216,0.25)]"
+  >
+    <motion.div 
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-full h-full flex flex-col items-center justify-center p-8"
+    >
+      <div className="w-24 h-24 rounded-[2.2rem] bg-[#f5fbff] flex items-center justify-center mb-8 group-hover:bg-[#a7c7d8] transition-all duration-500 shadow-inner">
+        <Droplets size={40} strokeWidth={1} className="text-[#a7c7d8] group-hover:text-white transition-colors" />
+      </div>
+      <h3 className="text-2xl font-serif italic font-bold mb-2">Moisturizers</h3>
+      <p className="text-[#8C7A7A] text-[10px] font-bold uppercase tracking-[0.25em]">Hydrate Your Glow</p>
+    </motion.div>
+  </Link>
+</motion.div>
             
             {/* Card 3: Sunscreens */}
             <motion.div variants={itemVariants}>
-              <Link href="/selection/sunscreens" className="group block w-[280px] h-[340px] bg-white border border-[#F9EAEA] rounded-[3.5rem] shadow-sm relative overflow-hidden transition-all hover:shadow-[0_20px_50px_rgba(216,188,167,0.25)]">
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full h-full flex flex-col items-center justify-center p-8"
-                >
-                  <div className="w-24 h-24 rounded-[2.2rem] bg-[#fffcf5] flex items-center justify-center mb-8 group-hover:bg-[#d8bca7] transition-all duration-500 shadow-inner">
-                    <Sun size={40} strokeWidth={1} className="text-[#d8bca7] group-hover:text-white transition-colors" />
-                  </div>
-                  <h3 className="text-2xl font-serif italic font-bold mb-2">Sunscreens</h3>
-                  <p className="text-[#8C7A7A] text-[10px] font-bold uppercase tracking-[0.25em]">Daily Protection</p>
-                </motion.div>
-              </Link>
-            </motion.div>
-
+  <Link href="/selection/sunscreens" className="group block w-[280px] h-[340px] bg-[#FFE0B2] border border-[#F9EAEA] rounded-[3.5rem] shadow-sm relative overflow-hidden transition-all hover:shadow-[0_20px_50px_rgba(216,188,167,0.25)]">
+    <motion.div 
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-full h-full flex flex-col items-center justify-center p-8"
+    >
+      <div className="w-24 h-24 rounded-[2.2rem] bg-[#fffcf5] flex items-center justify-center mb-8 group-hover:bg-[#d8bca7] transition-all duration-500 shadow-inner">
+        <Sun size={40} strokeWidth={1} className="text-[#d8bca7] group-hover:text-white transition-colors" />
+      </div>
+      <h3 className="text-2xl font-serif italic font-bold mb-2">Sunscreens</h3>
+      <p className="text-[#8C7A7A] text-[10px] font-bold uppercase tracking-[0.25em]">Daily Protection</p>
+    </motion.div>
+  </Link>
+</motion.div>
           </motion.div>
 
           {/* Interactive Prompt */}
