@@ -71,7 +71,7 @@ export default function LiveInventory() {
     }
   };
 
-  const renderCategoryGroup = (categoryName: string, accentColor: string) => {
+ const renderCategoryGroup = (categoryName: string, accentColor: string) => {
     const filteredTanks = tanks.filter((t: any) => t.category === categoryName);
     
     return (
@@ -119,7 +119,7 @@ export default function LiveInventory() {
                   {tank.name}
                 </p>
 
-                {/* Glassmorphic Bottle Visualization[cite: 7, 10] */}
+                {/* Glassmorphic Bottle Visualization */}
                 <div className="w-10 h-28 bg-[#FDF8F8] rounded-b-2xl rounded-t-lg relative overflow-hidden shadow-inner border border-white/80">
                   <div className="absolute top-0 left-1 w-2 h-full bg-white/40 blur-[1px] z-10 rounded-full" />
                   
@@ -139,6 +139,18 @@ export default function LiveInventory() {
                 }`}>
                   {percentage.toFixed(1)}%
                 </p>
+
+                {/* --- NEW: Hardware Calibration Display --- */}
+                <div className="mt-3 w-full bg-[#FDF8F8] border border-[#F9EAEA] rounded-xl p-2 text-center">
+                  <p className="text-[7px] uppercase tracking-widest font-bold text-[#8C7A7A] mb-0.5">
+                    Flow Calibration
+                  </p>
+                  <p className="text-[10px] font-mono text-[#4A3F3F] font-semibold">
+                    {tank.ms_per_ml || 1500} <span className="opacity-50">ms/ml</span>
+                  </p>
+                </div>
+                {/* -------------------------------------- */}
+
               </motion.div>
             );
           })}
