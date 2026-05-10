@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const CONTENT_MAP = {
   perfumes: {
     name: "Luxury Fragrances", bg: "bg-[#fff5f8]", accent: "#d8a7b9", secondary: "#fce3ec", text: "#5a434f", border: "border-[#f3d8e5]",
-    min: 1, max: 10, step: 1, basePrice: 20,
+    min: 0.1 , max: 1.6, step: 0.3, basePrice: 10,
     products: [
       { id: "p1", name: "Midnight Musk", desc: "Deep Wood Notes", icon: <Flame size={32} /> },
       { id: "p2", name: "Aqua Surge", desc: "Cool Aqua Cologne", icon: <Wind size={32} /> }, // Note: Adjusted to match Tank #2
@@ -24,7 +24,7 @@ const CONTENT_MAP = {
   },
   moisturizers: {
     name: "Hydration Gallery", bg: "bg-[#f5fbff]", accent: "#a7c7d8", secondary: "#e3f4fc", text: "#43525a", border: "border-[#d8e8f3]",
-    min: 0.5, max: 3, step: 0.5, basePrice: 16.67,
+    min: 0.5, max: 3, step: 0.5, basePrice: 10,
     products: [
       { id: "m1", name: "Velvet Glow", desc: "Hyaluronic Gel", icon: <Waves size={32} /> },
       { id: "m2", name: "Rose Dew", desc: "Shea & Aloe Vera", icon: <Bath size={32} /> },
@@ -33,7 +33,7 @@ const CONTENT_MAP = {
   },
   sunscreens: {
     name: "Solar Protection", bg: "bg-[#fffcf5]", accent: "#d8bca7", secondary: "#fcf6e3", text: "#5a4f43", border: "border-[#f3e9d8]",
-    min: 0.5, max: 3, step: 0.5, basePrice: 16.67,
+    min: 0.5, max: 3, step: 0.5, basePrice: 15,
     products: [
       { id: "s1", name: "Vanilla Silk", desc: "SPF 50+ Protection", icon: <ShieldAlert size={32} /> },
       { id: "s2", name: "Herbal Mint", desc: "Water Resistant", icon: <Umbrella size={32} /> },
