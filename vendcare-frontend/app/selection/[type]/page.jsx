@@ -19,7 +19,7 @@ const CONTENT_MAP = {
     products: [
       { id: "p1", name: "Midnight Musk", desc: "Deep Wood Notes", icon: <Flame size={32} /> },
       { id: "p2", name: "Aqua Surge", desc: "Cool Aqua Cologne", icon: <Wind size={32} /> }, // Note: Adjusted to match Tank #2
-      { id: "p3", name: "Ultra Shield", desc: "Premium Essence", icon: <Flower2 size={32} /> } // Note: Adjusted to match Tank #3
+      // Note: Adjusted to match Tank #3
     ]
   },
   moisturizers: {
