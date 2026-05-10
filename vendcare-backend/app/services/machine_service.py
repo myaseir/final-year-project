@@ -6,9 +6,9 @@ import uuid
 
 class MachineService:
     PRODUCT_SLOTS = {
-        "Midnight Musk": 1, "Aqua Surge": 2, "Ultra Shield": 3,
-        "Velvet Glow": 4, "Rose Dew": 5, "Citrus Burst": 6,
-        "Vanilla Silk": 7, "Herbal Mint": 8, "Ocean Breeze": 9
+        "Midnight Musk": 1, "Aqua Surge": 2,
+        "Velvet Glow": 3, "Rose Dew": 4, "Citrus Burst": 5,
+        "Vanilla Silk": 6, "Herbal Mint": 7, "Ocean Breeze": 8
     }
 
     PRICE_RATES = {
