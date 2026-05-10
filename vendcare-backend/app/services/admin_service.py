@@ -77,7 +77,9 @@ class AdminService:
                 "max": tank.max_capacity,
                 "current": round(tank.current_level, 1),
                 "color": color,
-                "category": cat
+                "category": cat,
+                "ms_per_ml": getattr(tank, "ms_per_ml", 1500)
+        
             })
         return categorized_tanks
 

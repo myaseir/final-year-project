@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Body
 from app.api.schemas import DispenseRequest, PaymentRequest, ConfirmPaymentRequest
 from app.services.machine_service import machine_service
-from app.core.database import get_db # Changed: Import the getter function
+from app.core.database import get_db 
 import uuid
 import asyncio
 from typing import Dict
@@ -9,13 +9,11 @@ import os
 
 router = APIRouter()
 
-# --- Memory Management (Still used for Frontend, but Hardware uses DB) ---
 active_transactions: Dict[str, dict] = {} 
 
 # --- 1. MANUAL METHOD (Identifier + PIN) ---
 @router.post("/verify-and-dispense")
 async def handle_manual_dispense(data: DispenseRequest):
-    # Fetch the live database instance
     db = get_db()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -31,16 +29,16 @@ async def handle_manual_dispense(data: DispenseRequest):
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     
-    # NEW: Instead of WebSocket, we push to MongoDB Queue
+    # NEW: Push the duration_ms to MongoDB Queue so hardware can see it
     dispense_command = {
         "machine_id": data.machine_id,
         "slot": result.get("slot_id", 1),
         "volume": data.volume,
+        "duration_ms": result.get("duration_ms", 0), # <-- ADDED
         "status": "pending",
         "timestamp": uuid.uuid4().hex 
     }
     
-    # Use the retrieved db instance
     await db.dispense_queue.insert_one(dispense_command)
     
     return result
@@ -56,7 +54,6 @@ async def check_commands(m_id: str):
     if db is None:
         return {"pending": False}
 
-    # Find and delete the oldest pending command atomically
     command = await db.dispense_queue.find_one_and_delete(
         {"machine_id": m_id, "status": "pending"}
     )
@@ -65,7 +62,8 @@ async def check_commands(m_id: str):
         return {
             "pending": True, 
             "slot": command["slot"], 
-            "volume": command["volume"]
+            "volume": command["volume"],
+            "duration_ms": command.get("duration_ms", 0) # <-- ADDED: Sending to ESP32
         }
     
     return {"pending": False}
@@ -116,11 +114,12 @@ async def confirm_payment(transaction_id: str, data: ConfirmPaymentRequest):
     
     txn_data["status"] = "PAID"
     
-    # Push to MongoDB Queue for QR Payment
+    # NEW: Push to MongoDB Queue for QR Payment with duration
     await db.dispense_queue.insert_one({
         "machine_id": txn_data["machine_id"],
         "slot": user_result.get("slot_id", 1),
         "volume": txn_data["volume"],
+        "duration_ms": user_result.get("duration_ms", 0), # <-- ADDED
         "status": "pending"
     })
     

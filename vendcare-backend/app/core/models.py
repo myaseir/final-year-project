@@ -50,7 +50,9 @@ class Tank(Document):
     product_name: str     # Matches the names in MachineService.PRODUCT_SLOTS[cite: 8]
     max_capacity: float   # Usually 500.0[cite: 5]
     current_level: float  # Real-time fluid level shown on Admin Panel[cite: 5, 7]
-    hex_color: str        # Category-based: Pink, Blue, or Purple[cite: 7]
+    hex_color: str 
+    
+    ms_per_ml: int = 1500  # Category-based: Pink, Blue, or Purple[cite: 7]
 
     class Settings:
         name = "tanks"
